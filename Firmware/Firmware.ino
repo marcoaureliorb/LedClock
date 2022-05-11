@@ -78,8 +78,8 @@ ESP8266WebServer serverWeb(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed every minute (60000ms)
 
-int hourToShow = 5;
-int minuteToShow = 30;
+int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
+int endHourToShow = 5 * 100 + 30;
 
 void setup() {
   Serial.begin(9600);
@@ -208,9 +208,11 @@ void loop() {
       stripDeco.setPixelColor(i, stripDeco.Color(cor.g, cor.r, cor.b));
     }
 
-    if( hour > hourToShow && minute > minuteToShow){
+    int hourInt = hour * 100 + minute;
+    if( hourInt > startHourToShow && hourInt < endHourToShow){
       stripDeco.setBrightness(0);
       stripClock.setBrightness(0);
+      Serial.println("Clock bright automatc to off. ");
     }
 
     stripDeco.show(); 
@@ -349,10 +351,10 @@ void sethourminutetoshow(){
   String response;
   String contentType = "application/json";
   
-  hourToShow = serverWeb.arg(0).toInt();
-  minuteToShow = serverWeb.arg(1).toInt();
+  startHourToShow = serverWeb.arg(0).toInt() * 100 + serverWeb.arg(1).toInt();
+  endHourToShow = serverWeb.arg(2).toInt() * 100 + serverWeb.arg(3).toInt();
   
-  response = String("{ \"Status\" : \"") + "Hour and minute to show led changed to " + hourToShow + ":" + minuteToShow + "\"}";
+  response = String("{ \"Status\" : \"") + "Hour and minute to show led changed between " + startHourToShow + " and " + endHourToShow + "\"}";
   serverWeb.send(200, contentType , response);
   Serial.println(response);
 }
@@ -444,7 +446,7 @@ void getInfoApi(){
            String("\"Deco_Color\": \"") + clockDecoColorStr + "\"," + 
            String("\"Deco_Brightness_Mode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
            
-           String("\"Hour_and_minute_to_show\": \"") + String(hourToShow) + ":" + String(minuteToShow) + "\"" + 
+           String("\"Hour_and_minute_to_show\": \"") + String(startHourToShow) + " and " + String(endHourToShow) + "\"" + 
            "}";
   
   serverWeb.send(200, contentType , response);
