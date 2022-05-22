@@ -5,12 +5,11 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Adafruit_NeoPixel.h>
+//#include <Preferences.h>
 #include "Utils.h"
-
-#ifdef __AVR__
-#endif
-
 #include <ESP8266HTTPClient.h>
+
+//Preferences preferences;
 
 // wifi settings
 const char * BOX = "Biscoitao2.4G";
@@ -55,7 +54,6 @@ long average = 0;          // the average
 
 RGB clockColor[4];
 RGB tempColor[4];
-
 RGB clockDecoColor[12];
 
 bool format24Hours = true;
@@ -73,7 +71,7 @@ void onConnected(const WiFiEventStationModeConnected& event);
 void onGotIP(const WiFiEventStationModeGotIP& event);
 
 // webserver
-ESP8266WebServer serverWeb(80);
+ESP8266WebServer serverWeb(8080);
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed every minute (60000ms)
@@ -98,6 +96,8 @@ void setup() {
     Serial.print(".");
   }
 
+  //carregaPreferencias();
+
   serverWeb.on("/getinfo", getInfoApi);
   serverWeb.on("/gettime", getTimeApi);
   serverWeb.on("/gettemperature", getTemperatureApi);
@@ -112,6 +112,8 @@ void setup() {
   serverWeb.on("/setdecocolor", setDecoColorApi);
 
   serverWeb.on("/setHourMinuteToShow", sethourminutetoshow);
+
+  serverWeb.on("/showTemperature", showTemperature);
   
   serverWeb.onNotFound(handleNotFound);
   serverWeb.enableCORS(true);
@@ -134,27 +136,28 @@ void setup() {
     readings[thisReading] = 50;
   }
 
-  clockColor[0] = getBlue();
-  clockColor[1] = getBlue();
-  clockColor[2] = getWhite();
-  clockColor[3] = getWhite();
-  
-  tempColor[0] = getBlue();
-  tempColor[1] = getBlue();
-  tempColor[2] = getWhite();
-  tempColor[3] = getWhite();
-
   for(int i=0; i<LEDDECO_COUNT; i++) {
-      clockDecoColor[i] = getWhite();
+      clockDecoColor[i] = (RGB){ 255 , 255 , 255 };
   }
+
+  tempColor[0] = (RGB){ 0 , 0 , 255 };
+  tempColor[1] = (RGB){ 0 , 0 , 255 };
+  tempColor[2] = (RGB){ 255 , 255 , 255 };
+  tempColor[3] = (RGB){ 255 , 255 , 255 };
+
+  clockColor[0] = (RGB){ 0 , 0 , 255 };
+  clockColor[1] = (RGB){ 0 , 0 , 255 };
+  clockColor[2] = (RGB){ 255 , 255 , 255 };
+  clockColor[3] = (RGB){ 255 , 255 , 255 }; 
 }
 
 void loop() {
   if (WiFi.isConnected())
   {
     serverWeb.handleClient();
+    fauxmo.handle();    
 
-    if(timeToChangeMode <= 50){
+    if(timeToChangeMode <= 5){
         readTheTime();
         displayTheTime();
     }
@@ -163,7 +166,7 @@ void loop() {
       displayTheTemperature();
     }
 
-    if(timeToChangeMode >= 60){
+    if(timeToChangeMode >= 10){
       timeToChangeMode = -1;
     }
 
@@ -347,6 +350,17 @@ void getTemperatureUrlApi(){
   Serial.println(response);
 }
 
+void showTemperature(){
+  
+  timeToChangeMode = 5;
+
+  String response;
+  String contentType = "application/json";
+  response = String("{ \"ShowTemperature\" : \"") + "OK" + "\"}";
+  serverWeb.send(200, contentType , response); 
+  Serial.println(response); 
+}
+
 void sethourminutetoshow(){
   String response;
   String contentType = "application/json";
@@ -406,10 +420,17 @@ void setDecoColorApi(){
 }
 
 void getInfoApi(){
-  String response;
   String contentType = "application/json";
   
-  String sensorLightValues = "";
+  String response = getConfigClock();
+    
+  serverWeb.send(200, contentType , response);
+  
+  Serial.println(response);
+}
+
+String getConfigClock(){
+ String sensorLightValues = "";
   for (int i=0; i < numReadings; i++)
   {
   sensorLightValues += String(readings[i]) + " - ";
@@ -420,8 +441,8 @@ void getInfoApi(){
   {
   clockDecoColorStr += colorToStr(clockDecoColor[i]) + " - ";
   }
-
-  response = String("{") + 
+    
+    return String("{") + 
            
            String("\"Time\": \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"," + 
            
@@ -447,10 +468,7 @@ void getInfoApi(){
            String("\"Deco_Brightness_Mode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
            
            String("\"Hour_and_minute_to_show\": \"") + String(startHourToShow) + " and " + String(endHourToShow) + "\"" + 
-           "}";
-  
-  serverWeb.send(200, contentType , response);
-  Serial.println(response);
+           "}";  
 }
 
 void setDecoBrightnessState()
@@ -497,29 +515,20 @@ void displayTheTime(){
   stripClock.clear(); //clear the clock face 
  
   int firstminuteDigit = minute % 10; //work out the value of the first digit and then display it
-  uint32_t colorM = colorToInt(clockColor[3]);
-  Serial.print("Color second minute: ");
-  printRGB(clockColor[3]);
-  displayNumber(firstminuteDigit, 0, colorM);
+  displayNumber(firstminuteDigit, 0, colorToInt(clockColor[3]));
+  printRGB("Color second minute: ", clockColor[3]);  
 
   int secondminuteDigit = floor(minute / 10); //work out the value for the second digit and then display it
-  colorM = colorToInt(clockColor[2]);
-  Serial.print("Color first minute: ");
-  printRGB(clockColor[2]);
-  displayNumber(secondminuteDigit, 63, colorM);  
+  displayNumber(secondminuteDigit, 63, colorToInt(clockColor[2]));  
+  printRGB("Color first minute: ", clockColor[2]);  
 
-  uint32_t colorH = colorToInt(clockColor[1]);
-  Serial.print("Color second hour: ");
-  printRGB(clockColor[1]);
-  
   int firstHourDigit = hour % 10; //work out the value for the third digit and then display it
-  displayNumber(firstHourDigit, 126, colorH);
+  displayNumber(firstHourDigit, 126, colorToInt(clockColor[1]));
+  printRGB("Color second hour: ", clockColor[1]);
 
   int secondHourDigit = floor(hour/ 10); //work out the value for the fourth digit and then display it
-  colorH = colorToInt(clockColor[0]);
-  Serial.print("Color first hour: ");
-  printRGB(clockColor[0]);
-  displayNumber(secondHourDigit, 189, colorH);
+  displayNumber(secondHourDigit, 189, colorToInt(clockColor[0]));
+  printRGB("Color first hour: ", clockColor[0]);  
 }
 
 void readTheTemperature(){
@@ -581,27 +590,19 @@ void readTheTemperature(){
 void displayTheTemperature(){
   stripClock.clear(); //clear the clock face 
 
-  uint32_t coloTS = colorToInt(tempColor[3]);
-  letterC(0, coloTS);
-  Serial.print("Color letter C: ");
-  printRGB(tempColor[3]);
+  letterC(0, colorToInt(tempColor[3]));
+  printRGB("Color letter: ", tempColor[3]);
 
-  coloTS = colorToInt(tempColor[2]);
-  symbolDegrees(63, coloTS);  
-  Serial.print("Color symbol degrees: ");
-  printRGB(tempColor[2]);
+  symbolDegrees(63, colorToInt(tempColor[2]));  
+  printRGB("Color symbol: ", tempColor[2]);
   
-  uint32_t colorTD = colorToInt(tempColor[1]);
   int firstTempDigit = temperature % 10; //work out the value for the third digit and then display it
-  displayNumber(firstTempDigit, 126, colorTD);
-  Serial.print("Color second digit: ");
-  printRGB(tempColor[1]);
+  displayNumber(firstTempDigit, 126, colorToInt(tempColor[1]));
+  printRGB("Color second digit: ", tempColor[1]);
 
-  colorTD = colorToInt(tempColor[0]);
   int secondTempDigit = floor(temperature/ 10); //work out the value for the fourth digit and then display it
-  displayNumber(secondTempDigit, 189, colorTD);
-  Serial.print("Color first digit: ");
-  printRGB(tempColor[0]);
+  displayNumber(secondTempDigit, 189, colorToInt(tempColor[0]));
+  printRGB("Color first digit: ", tempColor[0]);
 }
 
 uint32_t colorToInt(RGB color){
@@ -615,7 +616,7 @@ String brightnessModeToStr(int mode){
     case 1:
       return "1 - on";
     case 2:
-      return "3 - auto";
+      return "2 - auto";
   }
 
   return "invalid";
@@ -712,4 +713,50 @@ void letterC(int offset, uint32_t colour){
 
 void symbolDegrees(int offset, uint32_t colour){
   stripClock.fill(colour, (0 + offset), 36);
+}
+
+void carregaPreferencias(){
+
+ // preferences.begin("config_clock", true);
+  /*
+   * caractere = preferences.getChar("key_carac", '-');
+   * numeroInteiro = preferences.getInt("key_nInt", 0);
+   * numeroInteiroPositivo = preferences.getUInt("key_nIntPosi", 0);  
+   * numeroDecimal = preferences.getFloat("key_nDec", 0);
+   * booleano = preferences.getBool("key_boolean", false);
+   * palavra = preferences.getString("key_palavra", "NULL");
+    */
+  /*clockColor[0] = stringToRGB(preferences.getString("clock_C0", "0,0,255"));
+  clockColor[1] = stringToRGB(preferences.getString("clock_C1", "0,0,255"));
+  clockColor[2] = stringToRGB(preferences.getString("clock_C2", "255,255,255"));
+  clockColor[3] = stringToRGB(preferences.getString("clock_C3", "255,255,255"));
+  
+  tempColor[0] = stringToRGB(preferences.getString("temp_C0", "0,0,255"));
+  tempColor[1] = stringToRGB(preferences.getString("temp_C1", "0,0,255"));
+  tempColor[2] = stringToRGB(preferences.getString("temp_C2", "255,255,255"));
+  tempColor[3] = stringToRGB(preferences.getString("temp_C3", "255,255,255"));
+
+  for(int i=0; i<LEDDECO_COUNT; i++) {
+      clockDecoColor[i] = stringToRGB(preferences.getString("deco_C" + i, "255,255,255"));
+  }  
+
+  preferences.end();  
+
+  Serial.print("Preferencias carregadas");
+  Serial.println("Clock color");
+  printRGB(clockColor[0]);
+  printRGB(clockColor[1]);
+  printRGB(clockColor[2]);
+  printRGB(clockColor[3]);
+  Serial.println("Temp color");
+  printRGB(tempColor[0]);  
+  printRGB(tempColor[1]);  
+  printRGB(tempColor[3]);  
+  printRGB(tempColor[4]);  
+
+  Serial.println("Deco color");
+  for(int i=0; i<LEDDECO_COUNT; i++) {
+      printRGB(clockDecoColor[i]);
+  }  
+  */
 }
