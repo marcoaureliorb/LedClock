@@ -1,0 +1,131 @@
+{
+  "Time": {
+    "Hora": 20,
+    "Minuto": 47
+  },
+  "Clock_First_Hour_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Clock_Second_Hour_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Clock_First_Minute_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Clock_Secod_Minute_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Clock_Brightness_Mode": 1,
+  "Brightness_Sensor_Values": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "Brightness_Sensor_map": 209,
+  "Temperature": 21,
+  "Url_Temperature": "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0",
+  "Temp_First_Value_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Temp_Second_Value_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Temp_First_Symbol_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Temp_Second_Symbol_Color": {
+    "Red": 0,
+    "Green": 0,
+    "Blue": 0
+  },
+  "Deco_Color": [
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    },
+    {
+      "Red": 0,
+      "Green": 0,
+      "Blue": 0
+    }
+  ],
+  "Deco_Brightness_Mode": 1,
+  "Hour_and_minute_to_show": [
+    0,
+    530
+  ]
+}
