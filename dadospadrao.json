@@ -1,126 +1,113 @@
 {
   "Time": {
-    "Hora": 20,
-    "Minuto": 47
+    "Hora": 0,
+    "Minuto": 0
   },
   "Clock_First_Hour_Color": {
     "Red": 0,
     "Green": 0,
-    "Blue": 0
+    "Blue": 255
   },
   "Clock_Second_Hour_Color": {
     "Red": 0,
     "Green": 0,
-    "Blue": 0
+    "Blue": 255
   },
   "Clock_First_Minute_Color": {
-    "Red": 0,
-    "Green": 0,
-    "Blue": 0
+    "Red": 255,
+    "Green": 255,
+    "Blue": 255
   },
   "Clock_Secod_Minute_Color": {
-    "Red": 0,
-    "Green": 0,
-    "Blue": 0
+    "Red": 255,
+    "Green": 255,
+    "Blue": 255
   },
   "Clock_Brightness_Mode": 1,
-  "Brightness_Sensor_Values": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-  ],
+  "Brightness_Sensor_Values": [0,0,0,0,0,0,0,0,0,0,0,0],
   "Brightness_Sensor_map": 209,
   "Temperature": 21,
   "Url_Temperature": "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0",
   "Temp_First_Value_Color": {
     "Red": 0,
     "Green": 0,
-    "Blue": 0
+    "Blue": 255
   },
   "Temp_Second_Value_Color": {
     "Red": 0,
     "Green": 0,
-    "Blue": 0
+    "Blue": 255
   },
   "Temp_First_Symbol_Color": {
-    "Red": 0,
-    "Green": 0,
-    "Blue": 0
+    "Red": 255,
+    "Green": 255,
+    "Blue": 255
   },
   "Temp_Second_Symbol_Color": {
-    "Red": 0,
-    "Green": 0,
-    "Blue": 0
+    "Red": 255,
+    "Green": 255,
+    "Blue": 255
   },
   "Deco_Color": [
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     },
     {
-      "Red": 0,
-      "Green": 0,
-      "Blue": 0
+      "Red": 255,
+      "Green": 255,
+      "Blue": 255
     }
   ],
   "Deco_Brightness_Mode": 1,
