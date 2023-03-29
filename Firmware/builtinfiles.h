@@ -1,0 +1,429 @@
+/**
+ * @file builtinfiles.h
+ *   
+ * This file contains long, multiline text variables for  all builtin resources.
+ */
+
+static const char notFoundContent[] PROGMEM = R"==(
+<html>
+<head>
+  <title>Ressource not found</title>
+</head>
+<body>
+  <p>The ressource was not found.</p>
+  <p><a href="/">Start again</a></p>
+</body>
+)==";
+
+static const char homeHtml[] PROGMEM = R"==(
+<html>
+  <head>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+    <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'></script>
+    <title>Led Clock REST API</title>
+  </head>
+  <body  onload='startup();'>
+    <div class='container-fluid p-3 bg-primary text-white text-center'>
+      <h2>Led Clock</h2>
+      <p>Welcome to Led Clock REST API</p>
+    </div>
+    <p>
+    <div class='container mt-3'>
+      <ul class='nav nav-tabs' role='tablist'>
+        <li class='nav-item'>
+          <a class='nav-link active' data-bs-toggle='tab' href='#config'>Config</a>
+        </li>
+      </ul>
+      <div class='tab-content'>
+        <div id='config' class='container tab-pane active'>
+          <br>
+          <h4 class=''>Status</h4>
+          <div class='row'>
+            <div class='col-2 '>Hour</div>
+            <div class='col-2  '>
+       <div id='idTime'></div>
+            </div>
+            <div class='col-2  '>Temperature</div>
+            <div class='col-2  '>
+      <div id="idTemp"></div>
+            </div>
+            <div class='col-2  '>Brightness sensor</div>
+            <div class='col-2  '>
+      <div id="idbsm"></div>
+            </div>
+          </div>
+      <br>
+          <h4 class='border-top'>Clock</h4>
+          <div class='row'>
+            <div class='col-2 '>Color Hour</div>
+            <div class='col-2  '><input type='color' id='clock_first_hour_color'  value='#3A8439'>
+              <input type='color' id='clock_second_hour_color'  value='#3A8439'>
+            </div>
+            <div class='col-2  '>Color Minute</div>
+            <div class='col-2  '><input  type='color' id='clock_first_minute_color'  value='#dd0000'>
+              <input  type='color' id='clock_secod_minute_color'  value='#dd0000'>
+            </div>
+      <div class='col-sm-4  '></div>
+          </div>
+          <br>
+          <h4 class='border-top'>Temperature</h4>
+          <div class='row'>
+            <div class='col-sm-2 '>Value</div>
+            <div class='col-sm-2  '><input type='color' id='Temp_First_Value_Color' value='#ffffff'>
+                              <input type='color' id='Temp_Second_Value_Color' value='#ffffff'></div>
+            <div class='col-sm-2  '>Symbol</div>
+            <div class='col-sm-2  '><input type='color' id='Temp_First_Symbol_Color'  value='#0000ff'>
+                              <input type='color' id='Temp_Second_Symbol_Color'  value='#0000ff'></div>
+            <div class='col-sm-4  '></div>
+          </div>
+          <br>  
+          <h4 class='border-top'>Decoration light</h4>
+          <div class='row'>
+            <div class='col-sm-2 '>Line 1</div>
+            <div class='col-sm-1  '><input type='color' id='favDLC1' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC2' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC3' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC4' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC5' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC6' value='#ffffff'></div>
+      <div class='col-sm-1  '><input type='color' id='favDLC7' value='#ffffff'></div>
+          </div>
+          <div class='row'>
+            <div class='col-sm-2 '>Line 2</div>
+
+            <div class='col-sm-1  '><input type='color' id='favDLC8' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC9' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC10' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC11' value='#ffffff'></div>
+            <div class='col-sm-1  '><input type='color' id='favDLC12' value='#ffffff'></div>
+      <div class='col-sm-1  '><input type='color' id='favDLC13' value='#ffffff'></div>
+      <div class='col-sm-1  '><input type='color' id='favDLC14' value='#ffffff'></div>
+          </div>
+          <br>  
+          <h4 class='border-top'>Clock Brightness State</h4>
+          <div class='row'>
+            <div class='col-sm-2 '>State</div>
+            <div class='col-sm-10  '>
+              <div class='container mt-3'>
+                <button type='button' class='btn btn-primary' id='idCBSOn'>ON</button>
+                <button type='button' class='btn btn-primary' id='idCBSOff'>OFF</button>
+                <button type='button' class='btn btn-primary' id='idCBSAuto'>AUTO</button>     
+              </div>
+            </div>
+          </div>
+          <br>  
+          <h4 class='border-top'>Decoration Brightness State</h4>
+          <div class='row'>
+            <div class='col-sm-2 '>State</div>
+            <div class='col-sm-10  '>
+              <div class='container mt-3'>
+                <button type='button' class='btn btn-primary' id='idDBSOn'>ON</button>
+                <button type='button' class='btn btn-primary' id='idDBSOff'>OFF</button>
+                <button type='button' class='btn btn-primary' id='idDBSAuto'>AUTO</button>
+              </div>
+            </div>
+          </div>
+          <br>  
+          <h4 class='border-top'>Temperature url</h4>
+          <div class='row'>
+            <div class='col-sm-2 '>Url</div>
+            <div class='col-sm-9'><input type='txtTempUrl' class='form-control' id='txtTempUrl' placeholder='Enter temperature url' value=''></div>
+            <div class='col-sm-1 '><button type='button' class='btn btn-primary'>ok</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      const zeroPad = (num, places) => String(num).padStart(places, '0');
+  
+        function updateUiColorClock(event, api, digit)
+        {
+            var cor = hexToRgb(event.target.value);
+            var url = 'http://192.168.100.7/' + api + '?p=' + digit + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
+            console.log(url);
+            post(url);
+        }
+        
+        function setBrightnessState(event, api, mode)
+        {
+            var url = 'http://192.168.100.7/' + api + '?p=' + mode + '&p1=' + mode;
+            post(url);
+        }
+        
+        function componentToHex(c)
+        {
+            var hex = c.toString(16);
+            return hex.length == 1 ? '0' + hex : hex;
+        }
+        
+        function rgbToHex(r, g, b)
+        {
+            return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
+        }
+        
+        function hexToRgb(hex)
+        {
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ?
+            {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        function getinfo(callback)
+        {
+            url = 'http://192.168.100.7/getinfo';
+            xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function()
+            {
+                if (this.readyState == 4)
+                {
+                    if (this.status == 200)
+                    {
+                        callback(JSON.parse(this.responseText, null, ' '));
+                    }
+                    if (this.status == 404)
+                    {
+                        elmnt.innerHTML = 'Page not found.';
+                    }
+                }
+            }
+            xhttp.open('GET', url, true);
+            xhttp.send();
+        }
+        
+        function post(url)
+        {
+            xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function()
+            {
+                if (this.readyState == 4)
+                {
+                    if (this.status == 200)
+                    {
+                        console.log(JSON.parse(this.responseText, null, '  '));
+                    }
+                    if (this.status == 404)
+                    {
+                        elmnt.innerHTML = 'Page not found.';
+                    }
+                }
+            }
+            xhttp.open('GET', url, true);
+            xhttp.send();
+        }
+        
+        function updateUiColor(component, valueHex)
+        {
+            var x = valueHex.replace(')', '').replace('(', '').replace('#', '').split(',');
+            var cor = rgbToHex(parseInt(x[0]), parseInt(x[1]), parseInt(x[2]));
+            document.getElementById(component).value = cor;
+        }
+        
+        function changeBrightState(components, valor)
+        {
+            document.getElementById(components[0]).classList.remove('btn-success');
+            document.getElementById(components[1]).classList.remove('btn-success');
+            document.getElementById(components[2]).classList.remove('btn-success');
+            switch (valor)
+            {
+                case '0':
+                    document.getElementById(components[1]).classList.add('btn-success');
+                    break;
+                case '1':
+                    document.getElementById(components[0]).classList.add('btn-success');
+                    break;
+                case '2':
+                    document.getElementById(components[2]).classList.add('btn-success');
+                    break;
+            }
+        }
+        
+        function updateUi(dados)
+        {
+            document.getElementById('idbsm').innerHTML = dados['Brightness_Sensor_map'];
+            document.getElementById('idTemp').innerHTML = dados['Temperature'];
+            document.getElementById('idTime').innerHTML = dados['Time'];
+            document.getElementById('txtTempUrl').value = dados['Url_Temperature'];
+        
+            updateUiColor('clock_first_hour_color', dados['Clock_First_Hour_Color']);
+            updateUiColor('clock_second_hour_color', dados['Clock_Second_Hour_Color']);
+            updateUiColor('clock_first_minute_color', dados['Clock_First_Minute_Color']);
+            updateUiColor('clock_secod_minute_color', dados['Clock_Secod_Minute_Color']);
+            updateUiColor('Temp_First_Value_Color', dados['Temp_First_Value_Color']);
+            updateUiColor('Temp_Second_Value_Color', dados['Temp_Second_Value_Color']);
+            updateUiColor('Temp_First_Symbol_Color', dados['Temp_First_Symbol_Color']);
+            updateUiColor('Temp_Second_Symbol_Color', dados['Temp_Second_Symbol_Color']);
+        
+            var valor = dados['Clock_Brightness_Mode'][0];
+            changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], valor);
+        
+            var valor = dados['Deco_Brightness_Mode'][0];
+            changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], valor);
+        
+            var dadosDeco = dados['Deco_Color'].replaceAll(' ', '').split('-');
+            for (var i = 0; i <= 13; i++)
+            {
+                updateUiColor('favDLC' + (i + 1), dadosDeco[i]);
+            }
+        }
+        
+        function startup()
+        {
+            getinfo(updateUi);
+        
+            element = document.querySelector('#clock_first_hour_color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setHourColor', '1');
+            }, false);
+            element = document.querySelector('#Clock_Second_Hour_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setHourColor', '2');
+            }, false);
+            element = document.querySelector('#Clock_First_Minute_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setHourColor', '3');
+            }, false);
+            element = document.querySelector('#Clock_Secod_Minute_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setHourColor', '4');
+            }, false);
+            element = document.querySelector('#Temp_First_Value_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setcolortemp', '1');
+            }, false);
+            element = document.querySelector('#Temp_Second_Value_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setcolortemp', '2');
+            }, false);
+            element = document.querySelector('#Temp_First_Symbol_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setcolortemp', '3');
+            }, false);
+            element = document.querySelector('#Temp_Second_Symbol_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setcolortemp', '4');
+            }, false);
+            element = document.querySelector('#favDLC1');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '1');
+            }, false);
+            element = document.querySelector('#favDLC2');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '2');
+            }, false);
+            element = document.querySelector('#favDLC3');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '3');
+            }, false);
+            element = document.querySelector('#favDLC4');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '4');
+            }, false);
+            element = document.querySelector('#favDLC5');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '5');
+            }, false);
+            element = document.querySelector('#favDLC6');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '6');
+            }, false);
+            element = document.querySelector('#favDLC7');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '7');
+            }, false);
+            element = document.querySelector('#favDLC8');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '8');
+            }, false);
+            element = document.querySelector('#favDLC9');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '9');
+            }, false);
+            element = document.querySelector('#favDLC10');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '10');
+            }, false);
+            element = document.querySelector('#favDLC11');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '11');
+            }, false);
+            element = document.querySelector('#favDLC12');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '12');
+            }, false);
+            element = document.querySelector('#favDLC13');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '13');
+            }, false);
+            element = document.querySelector('#favDLC14');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setdecocolor', '14');
+            }, false);
+            element = document.querySelector('#idCBSOn');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setclockbrightnessstate', 'ON');
+                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '1');
+            }, false);
+            element = document.querySelector('#idCBSOff');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setclockbrightnessstate', 'OFF');
+                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '0');
+            }, false);
+            element = document.querySelector('#idCBSAuto');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setclockbrightnessstate', 'AUTO');
+                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '2');
+            }, false);
+            element = document.querySelector('#idDBSOn');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setdecobrightnessstate', 'ON');
+                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '1');
+            }, false);
+            element = document.querySelector('#idDBSOff');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setdecobrightnessstate', 'OFF');
+                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0');
+            }, false);
+            element = document.querySelector('#idDBSAuto');
+            element.addEventListener('click', function(e)
+            {
+                setBrightnessState(e, 'setdecobrightnessstate', 'AUTO');
+                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2');
+            }, false);
+        }
+
+    </script>
+  </body>
+</html>
+)==";
