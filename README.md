@@ -10,8 +10,6 @@ Code base for a completely customizable and configurable LED clock using WS2812b
 
 Web interface to change the properties of clock.
 
- <img src=Images/Api_Home.jpg width="600" /><br/>
- 
  <img src=Images/Api_Config.jpg width="600" /><br/>
 
 Buy me a coffee to say thanks: https://ko-fi.com/marcoaureliorb
