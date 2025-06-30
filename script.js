@@ -72,6 +72,16 @@ async function setBrightnessState(api, mode) {
     }
 }
 
+async function setCustomBrightness(api, value) {
+    try {
+        const url = `${API_BASE_URL}/${api}?p=CUSTOM&brightness=${value}`;
+        console.log('Setting custom brightness:', url);
+        await makeRequest(url);
+    } catch (error) {
+        console.error('Failed to set custom brightness:', error);
+    }
+}
+
 // UI Update Functions
 function updateConnectionStatus(connected) {
     isConnected = connected;
@@ -132,6 +142,9 @@ function updateBrightnessButtons(buttonIds, activeMode) {
         case '2':
             activeButtonId = buttonIds[2]; // AUTO
             break;
+        case 'CUSTOM':
+            activeButtonId = buttonIds[3]; // CUSTOM
+            break;
     }
     
     if (activeButtonId) {
@@ -139,6 +152,21 @@ function updateBrightnessButtons(buttonIds, activeMode) {
         if (activeButton) {
             activeButton.classList.add('active');
         }
+    }
+}
+
+function showBrightnessSlider(sliderId, show) {
+    const slider = document.getElementById(sliderId);
+    if (slider) {
+        slider.style.display = show ? 'block' : 'none';
+    }
+}
+
+function updateSliderFill(sliderId, value, max = 255) {
+    const fill = document.getElementById(sliderId);
+    if (fill) {
+        const percentage = (value / max) * 100;
+        fill.style.width = `${percentage}%`;
     }
 }
 
@@ -171,12 +199,14 @@ function updateUI(data) {
     // Update brightness states
     if (data.Clock_Brightness_Mode) {
         const clockMode = data.Clock_Brightness_Mode[0];
-        updateBrightnessButtons(['idCBSOn', 'idCBSOff', 'idCBSAuto'], clockMode);
+        updateBrightnessButtons(['idCBSOn', 'idCBSOff', 'idCBSAuto', 'idCBSCustom'], clockMode);
+        showBrightnessSlider('clockBrightnessSlider', clockMode === 'CUSTOM');
     }
     
     if (data.Deco_Brightness_Mode) {
         const decoMode = data.Deco_Brightness_Mode[0];
-        updateBrightnessButtons(['idDBSOn', 'idDBSOff', 'idDBSAuto'], decoMode);
+        updateBrightnessButtons(['idDBSOn', 'idDBSOff', 'idDBSAuto', 'idDBSCustom'], decoMode);
+        showBrightnessSlider('decoBrightnessSlider', decoMode === 'CUSTOM');
     }
     
     // Update decoration colors
@@ -240,16 +270,23 @@ function setupBrightnessEventListeners() {
     const clockBrightnessButtons = [
         { id: 'idCBSOn', mode: 'ON', api: 'setclockbrightnessstate' },
         { id: 'idCBSOff', mode: 'OFF', api: 'setclockbrightnessstate' },
-        { id: 'idCBSAuto', mode: 'AUTO', api: 'setclockbrightnessstate' }
+        { id: 'idCBSAuto', mode: 'AUTO', api: 'setclockbrightnessstate' },
+        { id: 'idCBSCustom', mode: 'CUSTOM', api: 'setclockbrightnessstate' }
     ];
     
     clockBrightnessButtons.forEach(button => {
         const element = document.getElementById(button.id);
         if (element) {
             element.addEventListener('click', async () => {
-                await setBrightnessState(button.api, button.mode);
-                updateBrightnessButtons(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 
-                    button.mode === 'ON' ? '1' : button.mode === 'OFF' ? '0' : '2');
+                if (button.mode === 'CUSTOM') {
+                    showBrightnessSlider('clockBrightnessSlider', true);
+                    updateBrightnessButtons(['idCBSOn', 'idCBSOff', 'idCBSAuto', 'idCBSCustom'], 'CUSTOM');
+                } else {
+                    showBrightnessSlider('clockBrightnessSlider', false);
+                    await setBrightnessState(button.api, button.mode);
+                    updateBrightnessButtons(['idCBSOn', 'idCBSOff', 'idCBSAuto', 'idCBSCustom'], 
+                        button.mode === 'ON' ? '1' : button.mode === 'OFF' ? '0' : '2');
+                }
             });
         }
     });
@@ -258,19 +295,70 @@ function setupBrightnessEventListeners() {
     const decoBrightnessButtons = [
         { id: 'idDBSOn', mode: 'ON', api: 'setdecobrightnessstate' },
         { id: 'idDBSOff', mode: 'OFF', api: 'setdecobrightnessstate' },
-        { id: 'idDBSAuto', mode: 'AUTO', api: 'setdecobrightnessstate' }
+        { id: 'idDBSAuto', mode: 'AUTO', api: 'setdecobrightnessstate' },
+        { id: 'idDBSCustom', mode: 'CUSTOM', api: 'setdecobrightnessstate' }
     ];
     
     decoBrightnessButtons.forEach(button => {
         const element = document.getElementById(button.id);
         if (element) {
             element.addEventListener('click', async () => {
-                await setBrightnessState(button.api, button.mode);
-                updateBrightnessButtons(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 
-                    button.mode === 'ON' ? '1' : button.mode === 'OFF' ? '0' : '2');
+                if (button.mode === 'CUSTOM') {
+                    showBrightnessSlider('decoBrightnessSlider', true);
+                    updateBrightnessButtons(['idDBSOn', 'idDBSOff', 'idDBSAuto', 'idDBSCustom'], 'CUSTOM');
+                } else {
+                    showBrightnessSlider('decoBrightnessSlider', false);
+                    await setBrightnessState(button.api, button.mode);
+                    updateBrightnessButtons(['idDBSOn', 'idDBSOff', 'idDBSAuto', 'idDBSCustom'], 
+                        button.mode === 'ON' ? '1' : button.mode === 'OFF' ? '0' : '2');
+                }
             });
         }
     });
+}
+
+function setupBrightnessSliders() {
+    // Clock brightness slider
+    const clockSlider = document.getElementById('clockBrightnessRange');
+    const clockValue = document.getElementById('clockBrightnessValue');
+    const clockFill = document.getElementById('clockSliderFill');
+    
+    if (clockSlider && clockValue && clockFill) {
+        clockSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            clockValue.textContent = value;
+            updateSliderFill('clockSliderFill', value);
+        });
+        
+        clockSlider.addEventListener('change', async (e) => {
+            const value = parseInt(e.target.value);
+            await setCustomBrightness('setclockbrightnessstate', value);
+        });
+        
+        // Initialize slider fill
+        updateSliderFill('clockSliderFill', parseInt(clockSlider.value));
+    }
+    
+    // Decoration brightness slider
+    const decoSlider = document.getElementById('decoBrightnessRange');
+    const decoValue = document.getElementById('decoBrightnessValue');
+    const decoFill = document.getElementById('decoSliderFill');
+    
+    if (decoSlider && decoValue && decoFill) {
+        decoSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            decoValue.textContent = value;
+            updateSliderFill('decoSliderFill', value);
+        });
+        
+        decoSlider.addEventListener('change', async (e) => {
+            const value = parseInt(e.target.value);
+            await setCustomBrightness('setdecobrightnessstate', value);
+        });
+        
+        // Initialize slider fill
+        updateSliderFill('decoSliderFill', parseInt(decoSlider.value));
+    }
 }
 
 function setupOtherEventListeners() {
@@ -311,6 +399,7 @@ async function startup() {
     // Setup event listeners
     setupColorEventListeners();
     setupBrightnessEventListeners();
+    setupBrightnessSliders();
     setupOtherEventListeners();
     
     // Initial data load

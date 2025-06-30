@@ -200,19 +200,45 @@
                                 <i class="fas fa-clock"></i>
                                 Clock Brightness
                             </h3>
-                            <div class="button-group">
-                                <button type="button" class="btn btn-toggle" id="idCBSOn" data-mode="on">
-                                    <i class="fas fa-power-off"></i>
-                                    ON
-                                </button>
-                                <button type="button" class="btn btn-toggle" id="idCBSOff" data-mode="off">
-                                    <i class="fas fa-moon"></i>
-                                    OFF
-                                </button>
-                                <button type="button" class="btn btn-toggle" id="idCBSAuto" data-mode="auto">
-                                    <i class="fas fa-magic"></i>
-                                    AUTO
-                                </button>
+                            <div class="brightness-controls">
+                                <div class="button-group">
+                                    <button type="button" class="btn btn-toggle" id="idCBSOn" data-mode="on">
+                                        <i class="fas fa-power-off"></i>
+                                        ON
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idCBSOff" data-mode="off">
+                                        <i class="fas fa-moon"></i>
+                                        OFF
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idCBSAuto" data-mode="auto">
+                                        <i class="fas fa-magic"></i>
+                                        AUTO
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idCBSCustom" data-mode="custom">
+                                        <i class="fas fa-sliders-h"></i>
+                                        CUSTOM
+                                    </button>
+                                </div>
+                                <div class="brightness-slider-container" id="clockBrightnessSlider" style="display: none;">
+                                    <div class="slider-header">
+                                        <label for="clockBrightnessRange">Custom Brightness</label>
+                                        <span class="brightness-value" id="clockBrightnessValue">128</span>
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <input type="range" 
+                                               id="clockBrightnessRange" 
+                                               class="brightness-range" 
+                                               min="0" 
+                                               max="255" 
+                                               value="128"
+                                               step="1">
+                                        <div class="slider-track-fill" id="clockSliderFill"></div>
+                                    </div>
+                                    <div class="slider-labels">
+                                        <span>0</span>
+                                        <span>255</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="brightness-card">
@@ -220,19 +246,45 @@
                                 <i class="fas fa-lightbulb"></i>
                                 Decoration Brightness
                             </h3>
-                            <div class="button-group">
-                                <button type="button" class="btn btn-toggle" id="idDBSOn" data-mode="on">
-                                    <i class="fas fa-power-off"></i>
-                                    ON
-                                </button>
-                                <button type="button" class="btn btn-toggle" id="idDBSOff" data-mode="off">
-                                    <i class="fas fa-moon"></i>
-                                    OFF
-                                </button>
-                                <button type="button" class="btn btn-toggle" id="idDBSAuto" data-mode="auto">
-                                    <i class="fas fa-magic"></i>
-                                    AUTO
-                                </button>
+                            <div class="brightness-controls">
+                                <div class="button-group">
+                                    <button type="button" class="btn btn-toggle" id="idDBSOn" data-mode="on">
+                                        <i class="fas fa-power-off"></i>
+                                        ON
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idDBSOff" data-mode="off">
+                                        <i class="fas fa-moon"></i>
+                                        OFF
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idDBSAuto" data-mode="auto">
+                                        <i class="fas fa-magic"></i>
+                                        AUTO
+                                    </button>
+                                    <button type="button" class="btn btn-toggle" id="idDBSCustom" data-mode="custom">
+                                        <i class="fas fa-sliders-h"></i>
+                                        CUSTOM
+                                    </button>
+                                </div>
+                                <div class="brightness-slider-container" id="decoBrightnessSlider" style="display: none;">
+                                    <div class="slider-header">
+                                        <label for="decoBrightnessRange">Custom Brightness</label>
+                                        <span class="brightness-value" id="decoBrightnessValue">128</span>
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <input type="range" 
+                                               id="decoBrightnessRange" 
+                                               class="brightness-range" 
+                                               min="0" 
+                                               max="255" 
+                                               value="128"
+                                               step="1">
+                                        <div class="slider-track-fill" id="decoSliderFill"></div>
+                                    </div>
+                                    <div class="slider-labels">
+                                        <span>0</span>
+                                        <span>255</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
