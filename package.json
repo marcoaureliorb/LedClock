@@ -1,0 +1,14 @@
+{
+  "name": "led-clock-interface",
+  "version": "1.0.0",
+  "description": "Modern web interface for LED Clock control",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

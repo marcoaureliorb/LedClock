@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Clock Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">
+                        <i class="fas fa-clock"></i>
+                        <span>LED Clock</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator" id="connectionStatus">
+                        <div class="status-dot"></div>
+                        <span>Connected</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Status Cards -->
+                <section class="status-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Status Overview
+                    </h2>
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <div class="status-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="status-content">
+                                <h3>Current Time</h3>
+                                <p id="idTime" class="status-value">--:--:--</p>
+                            </div>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-icon">
+                                <i class="fas fa-thermometer-half"></i>
+                            </div>
+                            <div class="status-content">
+                                <h3>Temperature</h3>
+                                <p id="idTemp" class="status-value">-- °C</p>
+                            </div>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-icon">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                            <div class="status-content">
+                                <h3>Brightness Sensor</h3>
+                                <p id="idbsm" class="status-value">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Clock Configuration -->
+                <section class="config-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-palette"></i>
+                        Clock Colors
+                    </h2>
+                    <div class="config-card">
+                        <div class="color-group">
+                            <h3>Hour Colors</h3>
+                            <div class="color-inputs">
+                                <div class="color-input-group">
+                                    <label>First Digit</label>
+                                    <input type="color" id="clock_first_hour_color" value="#3A8439" class="color-picker">
+                                </div>
+                                <div class="color-input-group">
+                                    <label>Second Digit</label>
+                                    <input type="color" id="clock_second_hour_color" value="#3A8439" class="color-picker">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="color-group">
+                            <h3>Minute Colors</h3>
+                            <div class="color-inputs">
+                                <div class="color-input-group">
+                                    <label>First Digit</label>
+                                    <input type="color" id="clock_first_minute_color" value="#dd0000" class="color-picker">
+                                </div>
+                                <div class="color-input-group">
+                                    <label>Second Digit</label>
+                                    <input type="color" id="clock_secod_minute_color" value="#dd0000" class="color-picker">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Temperature Configuration -->
+                <section class="config-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-thermometer-half"></i>
+                        Temperature Display
+                    </h2>
+                    <div class="config-card">
+                        <div class="color-group">
+                            <h3>Value Colors</h3>
+                            <div class="color-inputs">
+                                <div class="color-input-group">
+                                    <label>First Digit</label>
+                                    <input type="color" id="Temp_First_Value_Color" value="#ffffff" class="color-picker">
+                                </div>
+                                <div class="color-input-group">
+                                    <label>Second Digit</label>
+                                    <input type="color" id="Temp_Second_Value_Color" value="#ffffff" class="color-picker">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="color-group">
+                            <h3>Symbol Colors</h3>
+                            <div class="color-inputs">
+                                <div class="color-input-group">
+                                    <label>Degree Symbol</label>
+                                    <input type="color" id="Temp_First_Symbol_Color" value="#0000ff" class="color-picker">
+                                </div>
+                                <div class="color-input-group">
+                                    <label>C Symbol</label>
+                                    <input type="color" id="Temp_Second_Symbol_Color" value="#0000ff" class="color-picker">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="temp-url-group">
+                            <h3>Temperature Source</h3>
+                            <div class="input-group">
+                                <input type="url" id="txtTempUrl" placeholder="Enter temperature API URL" class="url-input">
+                                <button type="button" class="btn btn-primary" id="updateTempUrl">
+                                    <i class="fas fa-save"></i>
+                                    Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Decoration Lights -->
+                <section class="config-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-lightbulb"></i>
+                        Decoration Lights
+                    </h2>
+                    <div class="config-card">
+                        <div class="decoration-grid">
+                            <div class="decoration-line">
+                                <h3>Line 1</h3>
+                                <div class="decoration-colors">
+                                    <input type="color" id="favDLC1" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC2" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC3" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC4" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC5" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC6" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC7" value="#ffffff" class="color-picker small">
+                                </div>
+                            </div>
+                            <div class="decoration-line">
+                                <h3>Line 2</h3>
+                                <div class="decoration-colors">
+                                    <input type="color" id="favDLC8" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC9" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC10" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC11" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC12" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC13" value="#ffffff" class="color-picker small">
+                                    <input type="color" id="favDLC14" value="#ffffff" class="color-picker small">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Brightness Controls -->
+                <section class="config-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-adjust"></i>
+                        Brightness Control
+                    </h2>
+                    <div class="brightness-grid">
+                        <div class="brightness-card">
+                            <h3>
+                                <i class="fas fa-clock"></i>
+                                Clock Brightness
+                            </h3>
+                            <div class="button-group">
+                                <button type="button" class="btn btn-toggle" id="idCBSOn" data-mode="on">
+                                    <i class="fas fa-power-off"></i>
+                                    ON
+                                </button>
+                                <button type="button" class="btn btn-toggle" id="idCBSOff" data-mode="off">
+                                    <i class="fas fa-moon"></i>
+                                    OFF
+                                </button>
+                                <button type="button" class="btn btn-toggle" id="idCBSAuto" data-mode="auto">
+                                    <i class="fas fa-magic"></i>
+                                    AUTO
+                                </button>
+                            </div>
+                        </div>
+                        <div class="brightness-card">
+                            <h3>
+                                <i class="fas fa-lightbulb"></i>
+                                Decoration Brightness
+                            </h3>
+                            <div class="button-group">
+                                <button type="button" class="btn btn-toggle" id="idDBSOn" data-mode="on">
+                                    <i class="fas fa-power-off"></i>
+                                    ON
+                                </button>
+                                <button type="button" class="btn btn-toggle" id="idDBSOff" data-mode="off">
+                                    <i class="fas fa-moon"></i>
+                                    OFF
+                                </button>
+                                <button type="button" class="btn btn-toggle" id="idDBSAuto" data-mode="auto">
+                                    <i class="fas fa-magic"></i>
+                                    AUTO
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
