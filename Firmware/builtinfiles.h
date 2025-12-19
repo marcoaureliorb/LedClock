@@ -54,30 +54,57 @@ static const char homeHtml[] PROGMEM = R"==(
             </div>
           </div>
       <br>
+          <h4 class='border-top'>Day of month</h4>
+          <div class='row'>
+            <div class='col-2'>Color Day</div>
+            <div class='col-2'>
+              <input type='color' id='clock_first_day_color' value='#3A8439'>
+              <input type='color' id='clock_second_day_color' value='#3A8439'>
+            </div>
+            <div class='col-2'>Color Month</div>
+            <div class='col-2'>
+              <input  type='color' id='clock_first_month_color' value='#dd0000'>
+              <input  type='color' id='clock_secod_month_color' value='#dd0000'>
+            </div>
+            <div class='col-sm-4'></div>
+          </div>
+          
+          <br>
+
           <h4 class='border-top'>Clock</h4>
           <div class='row'>
-            <div class='col-2 '>Color Hour</div>
-            <div class='col-2  '><input type='color' id='clock_first_hour_color'  value='#3A8439'>
+            <div class='col-2'>Color Hour</div>
+            <div class='col-2'>
+              <input type='color' id='clock_first_hour_color'  value='#3A8439'>
               <input type='color' id='clock_second_hour_color'  value='#3A8439'>
             </div>
-            <div class='col-2  '>Color Minute</div>
-            <div class='col-2  '><input  type='color' id='clock_first_minute_color'  value='#dd0000'>
-              <input  type='color' id='clock_secod_minute_color'  value='#dd0000'>
+            <div class='col-2'>Color Minute</div>
+            <div class='col-2'>
+              <input  type='color' id='clock_first_minute_color' value='#dd0000'>
+              <input  type='color' id='clock_secod_minute_color' value='#dd0000'>
             </div>
-      <div class='col-sm-4  '></div>
+            <div class='col-sm-4'></div>
           </div>
+          
           <br>
+          
           <h4 class='border-top'>Temperature</h4>
           <div class='row'>
-            <div class='col-sm-2 '>Value</div>
-            <div class='col-sm-2  '><input type='color' id='Temp_First_Value_Color' value='#ffffff'>
-                              <input type='color' id='Temp_Second_Value_Color' value='#ffffff'></div>
-            <div class='col-sm-2  '>Symbol</div>
-            <div class='col-sm-2  '><input type='color' id='Temp_First_Symbol_Color'  value='#0000ff'>
-                              <input type='color' id='Temp_Second_Symbol_Color'  value='#0000ff'></div>
+            <div class='col-sm-2'>Value</div>
+            <div class='col-sm-2'>
+              <input type='color' id='Temp_First_Value_Color' value='#ffffff'>
+               <input type='color' id='Temp_Second_Value_Color' value='#ffffff'>
+            </div>
+            <div class='col-sm-2'>Symbol</div>
+            <div class='col-sm-2'>
+              <input type='color' id='Temp_First_Symbol_Color'  value='#0000ff'>
+              <input type='color' id='Temp_Second_Symbol_Color'  value='#0000ff'>
+            </div>
             <div class='col-sm-4  '></div>
           </div>
+          
           <br>  
+          
           <h4 class='border-top'>Decoration light</h4>
           <div class='row'>
             <div class='col-sm-2 '>Line 1</div>
@@ -248,11 +275,17 @@ static const char homeHtml[] PROGMEM = R"==(
             document.getElementById('idTemp').innerHTML = dados['Temperature'];
             document.getElementById('idTime').innerHTML = dados['Time'];
             document.getElementById('txtTempUrl').value = dados['Url_Temperature'];
-        
+
+            updateUiColor('clock_first_day_color', dados['Clock_First_Day_Color']);
+            updateUiColor('clock_second_day_color', dados['Clock_Second_Day_Color']);
+            updateUiColor('clock_first_month_color', dados['Clock_First_Month_Color']);
+            updateUiColor('clock_secod_month_color', dados['Clock_Secod_Month_Color']);
+
             updateUiColor('clock_first_hour_color', dados['Clock_First_Hour_Color']);
             updateUiColor('clock_second_hour_color', dados['Clock_Second_Hour_Color']);
             updateUiColor('clock_first_minute_color', dados['Clock_First_Minute_Color']);
             updateUiColor('clock_secod_minute_color', dados['Clock_Secod_Minute_Color']);
+            
             updateUiColor('Temp_First_Value_Color', dados['Temp_First_Value_Color']);
             updateUiColor('Temp_Second_Value_Color', dados['Temp_Second_Value_Color']);
             updateUiColor('Temp_First_Symbol_Color', dados['Temp_First_Symbol_Color']);
@@ -274,7 +307,29 @@ static const char homeHtml[] PROGMEM = R"==(
         function startup()
         {
             getinfo(updateUi);
-        
+
+            element = document.querySelector('#clock_first_day_color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setDayColor', '1');
+            }, false);
+            element = document.querySelector('#Clock_Second_day_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setDayColor', '2');
+            }, false);
+            element = document.querySelector('#Clock_First_Month_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setDayColor', '3');
+            }, false);
+            element = document.querySelector('#Clock_Secod_Month_Color');
+            element.addEventListener('change', function(e)
+            {
+                updateUiColorClock(e, 'setDayColor', '4');
+            }, false);
+
+
             element = document.querySelector('#clock_first_hour_color');
             element.addEventListener('change', function(e)
             {
@@ -295,6 +350,7 @@ static const char homeHtml[] PROGMEM = R"==(
             {
                 updateUiColorClock(e, 'setHourColor', '4');
             }, false);
+
             element = document.querySelector('#Temp_First_Value_Color');
             element.addEventListener('change', function(e)
             {

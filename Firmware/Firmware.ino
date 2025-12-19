@@ -49,16 +49,19 @@ int readIndex = 0;         // the index of the current reading
 long total = 0;            // the running total
 long average = 0;          // the average
 
+RGB dayColor[4];
 RGB clockColor[4];
 RGB tempColor[4];
 RGB clockDecoColor[14];
 
+int day = 0;
+int month = 0;
 int hour = 0;
 int minute = 0;
 int second = 0;
 
 String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0";
-int temperature = 0;
+int temperature = -1;
 int timeToChangeMode = 0;
 
 // gestion des evenements du wifi
@@ -140,16 +143,23 @@ void setup() {
    for(int i=0; i<LEDDECO_COUNT; i++) {
        clockDecoColor[i] = (RGB){ 255 , 255 , 255 };
    }
-   
-   tempColor[0] = (RGB){ 0 , 0 , 255 };
-   tempColor[1] = (RGB){ 0 , 0 , 255 };
-   tempColor[2] = (RGB){ 255 , 255 , 255 };
-   tempColor[3] = (RGB){ 255 , 255 , 255 };
-   
+
+   dayColor[0] = (RGB){ 0 , 255 , 0 };
+   dayColor[1] = (RGB){ 0 , 255 , 0 };
+   dayColor[2] = (RGB){ 255 , 255 , 255 };
+   dayColor[3] = (RGB){ 255 , 255 , 255 }; 
+
    clockColor[0] = (RGB){ 0 , 0 , 255 };
    clockColor[1] = (RGB){ 0 , 0 , 255 };
    clockColor[2] = (RGB){ 255 , 255 , 255 };
    clockColor[3] = (RGB){ 255 , 255 , 255 }; 
+
+   tempColor[0] = (RGB){ 255 , 0 , 0 };
+   tempColor[1] = (RGB){ 255 , 0 , 0 };
+   tempColor[2] = (RGB){ 255 , 255 , 255 };
+   tempColor[3] = (RGB){ 255 , 255 , 255 };
+
+   timeToChangeMode = 0;
 }
 
 void loop() {
@@ -157,20 +167,27 @@ void loop() {
   {
     serverWeb.handleClient();
 
-    if(timeToChangeMode <= 5){
+    timeToChangeMode++;    
+
+    if(timeToChangeMode == 1){
         readTheTime();
         displayTheTime();
     }
-    else{
+
+    if(timeToChangeMode == 50)
+    {
+      displayTheDay();
+    }    
+
+    if(timeToChangeMode == 55)
+    {
       readTheTemperature();
       displayTheTemperature();
     }
 
-    if(timeToChangeMode >= 10){
-      timeToChangeMode = -1;
+    if(timeToChangeMode >= 60){
+      timeToChangeMode = 0;
     }
-
-    timeToChangeMode++;
 
     switch (brightnessDecoMode)
     {
@@ -215,7 +232,7 @@ void loop() {
     if( hourInt > startHourToShow && hourInt < endHourToShow){
       stripDeco.setBrightness(0);
       stripClock.setBrightness(0);
-      Serial.println("Clock bright automatc to off. ");
+      Serial.println("Clock bright automatic to off. ");
     }
 
     stripDeco.show(); 
@@ -338,9 +355,6 @@ void getTemperatureUrlApi(){
 }
 
 void showTemperature(){
-  
-  timeToChangeMode = 5;
-
   String response;
   String contentType = "application/json";
   response = String("{ \"ShowTemperature\" : \"") + "OK" + "\"}";
@@ -370,6 +384,21 @@ void setHourColorApi(){
   String b = serverWeb.arg(3);
   clockColor[i-1] = getColor(r,g,b);
   response = String("{ \"Status\" : \"") + "Hour color changed to " + colorToStr(clockColor[i-1]) + " on pos " + i + "\"}";
+  
+  serverWeb.send(200, contentType , response);
+  Serial.println(response);
+}
+
+void setDayColorApi(){
+  String response;
+  String contentType = "application/json";
+  
+  int i = serverWeb.arg(0).toInt();
+  String r = serverWeb.arg(1);
+  String g = serverWeb.arg(2);
+  String b = serverWeb.arg(3);
+  dayColor[i-1] = getColor(r,g,b);
+  response = String("{ \"Status\" : \"") + "Day color changed to " + colorToStr(dayColor[i-1]) + " on pos " + i + "\"}";
   
   serverWeb.send(200, contentType , response);
   Serial.println(response);
@@ -434,9 +463,13 @@ String getConfigClock(){
            
            String("\"Time\": \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"," + 
            
+           String("\"Clock_First_Day_Color\": \"#") + colorToStr(dayColor[0]) + "\"," + 
+           String("\"Clock_Second_Day_Color\": \"#") + colorToStr(dayColor[1]) + "\"," +   
+           String("\"Clock_First_Month_Color\": \"#") + colorToStr(dayColor[2]) + "\"," + 
+           String("\"Clock_Secod_Month_Color\": \"#") + colorToStr(dayColor[3]) + "\"," + 
+
            String("\"Clock_First_Hour_Color\": \"#") + colorToStr(clockColor[0]) + "\"," + 
            String("\"Clock_Second_Hour_Color\": \"#") + colorToStr(clockColor[1]) + "\"," +   
-           
            String("\"Clock_First_Minute_Color\": \"#") + colorToStr(clockColor[2]) + "\"," + 
            String("\"Clock_Secod_Minute_Color\": \"#") + colorToStr(clockColor[3]) + "\"," + 
            
@@ -486,10 +519,22 @@ void setDecoBrightnessState()
 void readTheTime()
 {
   timeClient.update();
-  
+
   hour = timeClient.getHours();
   minute = timeClient.getMinutes();
   second = timeClient.getSeconds();
+
+ // Timestamp completo
+  unsigned long epochTime = timeClient.getEpochTime();
+
+  // Converte para data
+  struct tm *ptm = gmtime((time_t *)&epochTime);
+
+  day = ptm->tm_mday;
+  month = ptm->tm_mon + 1;
+
+  // Exibe no Serial
+  Serial.printf("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);  
 
   Serial.print("Time is: ");   
   Serial.print(hour);
@@ -497,6 +542,25 @@ void readTheTime()
   Serial.print(minute);
   Serial.print(":");
   Serial.println(second);
+}
+void displayTheDay(){
+  stripClock.clear(); //clear the clock face 
+ 
+  int firstDigit = month % 10; //work out the value of the first digit and then display it
+  displayNumber(firstDigit, 0, colorToInt(dayColor[3]));
+  printRGB("Color second month: ", dayColor[3]);  
+
+  int secondDigit = floor(month / 10); //work out the value for the second digit and then display it
+  displayNumber(secondDigit, 63, colorToInt(dayColor[2]));  
+  printRGB("Color first month: ", dayColor[2]);  
+
+  int thirdDigit = day % 10; //work out the value for the third digit and then display it
+  displayNumber(thirdDigit, 126, colorToInt(dayColor[1]));
+  printRGB("Color second day: ", dayColor[1]);
+
+  int fourthDigit = floor(day/ 10); //work out the value for the fourth digit and then display it
+  displayNumber(fourthDigit, 189, colorToInt(dayColor[0]));
+  printRGB("Color first day: ", dayColor[0]);  
 }
 
 void displayTheTime(){
@@ -525,7 +589,7 @@ void readTheTemperature(){
 
     Serial.println("Reading the temperature");
 
-    bool lerTemperatura = temperature == 0 || (hour % 3 == 0 && minute % 15 == 0);
+    bool lerTemperatura = temperature == -1 || minute % 59 == 0;
 
     if(!lerTemperatura){
         return;
