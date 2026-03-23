@@ -1,410 +1,743 @@
-<html>
-  <head>
-    <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
-    <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'></script>
-    <title>Led Clock REST API</title>
-  </head>
-  <body  onload='startup();'>
-    <div class='container-fluid p-3 bg-primary text-white text-center'>
-      <h2>Led Clock</h2>
-      <p>Welcome to Led Clock REST API</p>
-    </div>
-    <p>
-    <div class='container mt-3'>
-      <ul class='nav nav-tabs' role='tablist'>
-        <li class='nav-item'>
-          <a class='nav-link active' data-bs-toggle='tab' href='#config'>Config</a>
-        </li>
-      </ul>
-      <div class='tab-content'>
-        <div id='config' class='container tab-pane active'>
-          <br>
-          <h4 class=''>Status</h4>
-          <div class='row'>
-            <div class='col-2 '>Hour</div>
-            <div class='col-2  '>
-       <div id='idTime'></div>
-            </div>
-            <div class='col-2  '>Temperature</div>
-            <div class='col-2  '>
-      <div id="idTemp"></div>
-            </div>
-            <div class='col-2  '>Brightness sensor</div>
-            <div class='col-2  '>
-      <div id="idbsm"></div>
-            </div>
-          </div>
-      <br>
-          <h4 class='border-top'>Clock</h4>
-          <div class='row'>
-            <div class='col-2 '>Color Hour</div>
-            <div class='col-2  '><input type='color' id='clock_first_hour_color'  value='#3A8439'>
-              <input type='color' id='clock_second_hour_color'  value='#3A8439'>
-            </div>
-            <div class='col-2  '>Color Minute</div>
-            <div class='col-2  '><input  type='color' id='clock_first_minute_color'  value='#dd0000'>
-              <input  type='color' id='clock_secod_minute_color'  value='#dd0000'>
-            </div>
-      <div class='col-sm-4  '></div>
-          </div>
-          <br>
-          <h4 class='border-top'>Temperature</h4>
-          <div class='row'>
-            <div class='col-sm-2 '>Value</div>
-            <div class='col-sm-2  '><input type='color' id='Temp_First_Value_Color' value='#ffffff'>
-                              <input type='color' id='Temp_Second_Value_Color' value='#ffffff'></div>
-            <div class='col-sm-2  '>Symbol</div>
-            <div class='col-sm-2  '><input type='color' id='Temp_First_Symbol_Color'  value='#0000ff'>
-                              <input type='color' id='Temp_Second_Symbol_Color'  value='#0000ff'></div>
-            <div class='col-sm-4  '></div>
-          </div>
-          <br>  
-          <h4 class='border-top'>Decoration light</h4>
-          <div class='row'>
-            <div class='col-sm-2 '>Line 1</div>
-            <div class='col-sm-1  '><input type='color' id='favDLC1' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC2' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC3' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC4' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC5' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC6' value='#ffffff'></div>
-      <div class='col-sm-1  '><input type='color' id='favDLC7' value='#ffffff'></div>
-          </div>
-          <div class='row'>
-            <div class='col-sm-2 '>Line 2</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Led Clock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-            <div class='col-sm-1  '><input type='color' id='favDLC8' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC9' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC10' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC11' value='#ffffff'></div>
-            <div class='col-sm-1  '><input type='color' id='favDLC12' value='#ffffff'></div>
-      <div class='col-sm-1  '><input type='color' id='favDLC13' value='#ffffff'></div>
-      <div class='col-sm-1  '><input type='color' id='favDLC14' value='#ffffff'></div>
-          </div>
-          <br>  
-          <h4 class='border-top'>Clock Brightness State</h4>
-          <div class='row'>
-            <div class='col-sm-2 '>State</div>
-            <div class='col-sm-10  '>
-              <div class='container mt-3'>
-                <button type='button' class='btn btn-primary' id='idCBSOn'>ON</button>
-                <button type='button' class='btn btn-primary' id='idCBSOff'>OFF</button>
-                <button type='button' class='btn btn-primary' id='idCBSAuto'>AUTO</button>     
-              </div>
-            </div>
-          </div>
-          <br>  
-          <h4 class='border-top'>Decoration Brightness State</h4>
-          <div class='row'>
-            <div class='col-sm-2 '>State</div>
-            <div class='col-sm-10  '>
-              <div class='container mt-3'>
-                <button type='button' class='btn btn-primary' id='idDBSOn'>ON</button>
-                <button type='button' class='btn btn-primary' id='idDBSOff'>OFF</button>
-                <button type='button' class='btn btn-primary' id='idDBSAuto'>AUTO</button>
-              </div>
-            </div>
-          </div>
-          <br>  
-          <h4 class='border-top'>Temperature url</h4>
-          <div class='row'>
-            <div class='col-sm-2 '>Url</div>
-            <div class='col-sm-9'><input type='txtTempUrl' class='form-control' id='txtTempUrl' placeholder='Enter temperature url' value=''></div>
-            <div class='col-sm-1 '><button type='button' class='btn btn-primary'>ok</button></div>
-          </div>
+    :root {
+      --bg-base:      #07080d;
+      --bg-card:      #0e1018;
+      --bg-card2:     #141720;
+      --border:       #1e2233;
+      --border-glow:  #2a3560;
+      --accent:       #00c8ff;
+      --accent-dim:   rgba(0,200,255,.12);
+      --accent2:      #ff6b35;
+      --green:        #00e87a;
+      --green-dim:    rgba(0,232,122,.12);
+      --text-hi:      #e8eaf2;
+      --text-mid:     #8892aa;
+      --text-lo:      #3d4563;
+      --mono:         'Share Tech Mono', monospace;
+      --sans:         'Exo 2', sans-serif;
+      --radius:       10px;
+      --shadow:       0 4px 24px rgba(0,0,0,.5);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-hi);
+      font-family: var(--sans);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,100,180,.18) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.018) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.018) 40px);
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14,16,24,.92);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      box-shadow: 0 0 14px rgba(0,200,255,.3);
+    }
+    .logo-icon svg { width: 20px; height: 20px; fill: var(--accent); }
+    .logo-text { font-family: var(--mono); font-size: .95rem; color: var(--accent); letter-spacing: .08em; }
+    .logo-sub  { font-size: .7rem; color: var(--text-mid); font-family: var(--mono); letter-spacing: .12em; margin-top: 1px; }
+    .header-badge {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--green);
+      background: var(--green-dim);
+      border: 1px solid rgba(0,232,122,.25);
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: .1em;
+    }
+    .header-badge::before { content: '⬤  '; font-size: .5rem; vertical-align: middle; }
+
+    /* ── MAIN LAYOUT ── */
+    main { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    /* ── STATUS STRIP ── */
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: .6;
+    }
+    .stat-card:hover { border-color: var(--border-glow); }
+    .stat-label {
+      font-size: .65rem;
+      font-family: var(--mono);
+      letter-spacing: .15em;
+      color: var(--text-mid);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(0,200,255,.4);
+      min-height: 1.6rem;
+    }
+
+    /* ── SECTION CARDS ── */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-icon {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: var(--accent-dim);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .section-icon svg { width: 14px; height: 14px; fill: var(--accent); }
+    .section-title {
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-hi);
+    }
+    .section-body { padding: 20px; }
+
+    /* ── COLOR ROW ── */
+    .color-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .color-row:last-child { border-bottom: none; }
+    .color-label {
+      font-size: .75rem;
+      font-family: var(--mono);
+      color: var(--text-mid);
+      letter-spacing: .08em;
+      flex: 0 0 120px;
+    }
+    .color-pickers {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .color-swatch {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .color-swatch span {
+      font-size: .6rem;
+      font-family: var(--mono);
+      color: var(--text-lo);
+      letter-spacing: .08em;
+    }
+    input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 44px; height: 44px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: none;
+      cursor: pointer;
+      padding: 3px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 4px; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+    input[type="color"]:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(0,200,255,.25);
+    }
+
+    /* ── LED GRID ── */
+    .led-row-label {
+      font-size: .75rem;
+      font-family: var(--mono);
+      color: var(--text-mid);
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .led-row-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .led-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .led-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .led-item span {
+      font-size: .58rem;
+      font-family: var(--mono);
+      color: var(--text-lo);
+    }
+    .led-item input[type="color"] {
+      width: 40px; height: 40px; border-radius: 50%;
+      padding: 2px;
+      border: 2px solid var(--border);
+    }
+    .led-item input[type="color"]::-webkit-color-swatch { border-radius: 50%; }
+
+    /* ── BRIGHTNESS BUTTONS ── */
+    .btn-group {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .btn-toggle {
+      font-family: var(--mono);
+      font-size: .78rem;
+      letter-spacing: .1em;
+      padding: 10px 22px;
+      background: transparent;
+      color: var(--text-mid);
+      border: none;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      transition: background .18s, color .18s;
+      position: relative;
+    }
+    .btn-toggle:last-child { border-right: none; }
+    .btn-toggle:hover {
+      background: rgba(0,200,255,.08);
+      color: var(--accent);
+    }
+    .btn-toggle.btn-success {
+      background: rgba(0,232,122,.15);
+      color: var(--green);
+      box-shadow: inset 0 0 0 1px rgba(0,232,122,.3);
+    }
+
+    /* ── BRIGHTNESS CONTROL ROW ── */
+    .bright-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .bright-row:last-child { border-bottom: none; }
+    .bright-row-label {
+      font-size: .75rem;
+      font-family: var(--mono);
+      color: var(--text-mid);
+      letter-spacing: .08em;
+      flex: 0 0 140px;
+    }
+
+    /* ── URL INPUT ── */
+    .url-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .url-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-hi);
+      font-family: var(--mono);
+      font-size: .82rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .url-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,200,255,.1);
+    }
+    .url-input::placeholder { color: var(--text-lo); }
+    .btn-ok {
+      font-family: var(--mono);
+      font-size: .8rem;
+      letter-spacing: .1em;
+      padding: 10px 22px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,200,255,.35);
+      color: var(--accent);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .18s, box-shadow .18s;
+      white-space: nowrap;
+    }
+    .btn-ok:hover {
+      background: rgba(0,200,255,.2);
+      box-shadow: 0 0 16px rgba(0,200,255,.2);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      .status-strip { grid-template-columns: 1fr 1fr; }
+      .status-strip .stat-card:last-child { grid-column: 1 / -1; }
+      .stat-value { font-size: 1.2rem; }
+      .color-label { flex: 0 0 100%; }
+      .bright-row-label { flex: 0 0 100%; }
+      .btn-toggle { padding: 9px 14px; font-size: .72rem; }
+      .url-row { flex-direction: column; }
+      .url-input { width: 100%; }
+      main { padding: 16px 12px 50px; }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    /* ── FADE IN ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .section-card { animation: fadeUp .35s ease both; }
+    .section-card:nth-child(1) { animation-delay: .05s; }
+    .section-card:nth-child(2) { animation-delay: .10s; }
+    .section-card:nth-child(3) { animation-delay: .15s; }
+    .section-card:nth-child(4) { animation-delay: .20s; }
+    .section-card:nth-child(5) { animation-delay: .25s; }
+    .section-card:nth-child(6) { animation-delay: .30s; }
+  </style>
+</head>
+<body onload="startup();">
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">LED CLOCK</div>
+      <div class="logo-sub">REST API PANEL</div>
+    </div>
+  </div>
+  <div class="header-badge">ONLINE</div>
+</header>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- STATUS -->
+  <div class="status-strip">
+    <div class="stat-card">
+      <div class="stat-label">Current Time</div>
+      <div class="stat-value" id="idTime">--:--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Temperature</div>
+      <div class="stat-value" id="idTemp">--°</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Brightness Sensor</div>
+      <div class="stat-value" id="idbsm">---</div>
+    </div>
+  </div>
+
+  <!-- DAY OF MONTH COLORS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+      </div>
+      <span class="section-title">Day of Month</span>
+    </div>
+    <div class="section-body">
+      <div class="color-row">
+        <div class="color-label">DAY digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="clock_first_day_color" value="#3A8439"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="clock_second_day_color" value="#3A8439"><span>D2</span></div>
+        </div>
+      </div>
+      <div class="color-row">
+        <div class="color-label">MONTH digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="clock_first_month_color" value="#dd0000"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="clock_secod_month_color" value="#dd0000"><span>D2</span></div>
         </div>
       </div>
     </div>
-    <script type="text/javascript">
-      const zeroPad = (num, places) => String(num).padStart(places, '0');
-  
-        function updateUiColorClock(event, api, digit)
-        {
-            var cor = hexToRgb(event.target.value);
-            var url = 'http://192.168.100.7/' + api + '?p=' + digit + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
-            console.log(url);
-            post(url);
-        }
-        
-        function setBrightnessState(event, api, mode)
-        {
-            var url = 'http://192.168.100.7/' + api + '?p=' + mode + '&p1=' + mode;
-            post(url);
-        }
-        
-        function componentToHex(c)
-        {
-            var hex = c.toString(16);
-            return hex.length == 1 ? '0' + hex : hex;
-        }
-        
-        function rgbToHex(r, g, b)
-        {
-            return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
-        }
-        
-        function hexToRgb(hex)
-        {
-            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ?
-            {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : null;
-        }
-        
-        function getinfo(callback)
-        {
-            url = 'http://192.168.100.7/getinfo';
-            xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function()
-            {
-                if (this.readyState == 4)
-                {
-                    if (this.status == 200)
-                    {
-                        callback(JSON.parse(this.responseText, null, ' '));
-                    }
-                    if (this.status == 404)
-                    {
-                        elmnt.innerHTML = 'Page not found.';
-                    }
-                }
-            }
-            xhttp.open('GET', url, true);
-            xhttp.send();
-        }
-        
-        function post(url)
-        {
-            xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function()
-            {
-                if (this.readyState == 4)
-                {
-                    if (this.status == 200)
-                    {
-                        console.log(JSON.parse(this.responseText, null, '  '));
-                    }
-                    if (this.status == 404)
-                    {
-                        elmnt.innerHTML = 'Page not found.';
-                    }
-                }
-            }
-            xhttp.open('GET', url, true);
-            xhttp.send();
-        }
-        
-        function updateUiColor(component, valueHex)
-        {
-            var x = valueHex.replace(')', '').replace('(', '').replace('#', '').split(',');
-            var cor = rgbToHex(parseInt(x[0]), parseInt(x[1]), parseInt(x[2]));
-            document.getElementById(component).value = cor;
-        }
-        
-        function changeBrightState(components, valor)
-        {
-            document.getElementById(components[0]).classList.remove('btn-success');
-            document.getElementById(components[1]).classList.remove('btn-success');
-            document.getElementById(components[2]).classList.remove('btn-success');
-            switch (valor)
-            {
-                case '0':
-                    document.getElementById(components[1]).classList.add('btn-success');
-                    break;
-                case '1':
-                    document.getElementById(components[0]).classList.add('btn-success');
-                    break;
-                case '2':
-                    document.getElementById(components[2]).classList.add('btn-success');
-                    break;
-            }
-        }
-        
-        function updateUi(dados)
-        {
-            document.getElementById('idbsm').innerHTML = dados['Brightness_Sensor_map'];
-            document.getElementById('idTemp').innerHTML = dados['Temperature'];
-            document.getElementById('idTime').innerHTML = dados['Time'];
-            document.getElementById('txtTempUrl').value = dados['Url_Temperature'];
-        
-            updateUiColor('clock_first_hour_color', dados['Clock_First_Hour_Color']);
-            updateUiColor('clock_second_hour_color', dados['Clock_Second_Hour_Color']);
-            updateUiColor('clock_first_minute_color', dados['Clock_First_Minute_Color']);
-            updateUiColor('clock_secod_minute_color', dados['Clock_Secod_Minute_Color']);
-            updateUiColor('Temp_First_Value_Color', dados['Temp_First_Value_Color']);
-            updateUiColor('Temp_Second_Value_Color', dados['Temp_Second_Value_Color']);
-            updateUiColor('Temp_First_Symbol_Color', dados['Temp_First_Symbol_Color']);
-            updateUiColor('Temp_Second_Symbol_Color', dados['Temp_Second_Symbol_Color']);
-        
-            var valor = dados['Clock_Brightness_Mode'][0];
-            changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], valor);
-        
-            var valor = dados['Deco_Brightness_Mode'][0];
-            changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], valor);
-        
-            var dadosDeco = dados['Deco_Color'].replaceAll(' ', '').split('-');
-            for (var i = 0; i <= 13; i++)
-            {
-                updateUiColor('favDLC' + (i + 1), dadosDeco[i]);
-            }
-        }
-        
-        function startup()
-        {
-            getinfo(updateUi);
-        
-            element = document.querySelector('#clock_first_hour_color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setHourColor', '1');
-            }, false);
-            element = document.querySelector('#Clock_Second_Hour_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setHourColor', '2');
-            }, false);
-            element = document.querySelector('#Clock_First_Minute_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setHourColor', '3');
-            }, false);
-            element = document.querySelector('#Clock_Secod_Minute_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setHourColor', '4');
-            }, false);
-            element = document.querySelector('#Temp_First_Value_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setcolortemp', '1');
-            }, false);
-            element = document.querySelector('#Temp_Second_Value_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setcolortemp', '2');
-            }, false);
-            element = document.querySelector('#Temp_First_Symbol_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setcolortemp', '3');
-            }, false);
-            element = document.querySelector('#Temp_Second_Symbol_Color');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setcolortemp', '4');
-            }, false);
-            element = document.querySelector('#favDLC1');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '1');
-            }, false);
-            element = document.querySelector('#favDLC2');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '2');
-            }, false);
-            element = document.querySelector('#favDLC3');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '3');
-            }, false);
-            element = document.querySelector('#favDLC4');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '4');
-            }, false);
-            element = document.querySelector('#favDLC5');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '5');
-            }, false);
-            element = document.querySelector('#favDLC6');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '6');
-            }, false);
-            element = document.querySelector('#favDLC7');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '7');
-            }, false);
-            element = document.querySelector('#favDLC8');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '8');
-            }, false);
-            element = document.querySelector('#favDLC9');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '9');
-            }, false);
-            element = document.querySelector('#favDLC10');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '10');
-            }, false);
-            element = document.querySelector('#favDLC11');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '11');
-            }, false);
-            element = document.querySelector('#favDLC12');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '12');
-            }, false);
-            element = document.querySelector('#favDLC13');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '13');
-            }, false);
-            element = document.querySelector('#favDLC14');
-            element.addEventListener('change', function(e)
-            {
-                updateUiColorClock(e, 'setdecocolor', '14');
-            }, false);
-            element = document.querySelector('#idCBSOn');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setclockbrightnessstate', 'ON');
-                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '1');
-            }, false);
-            element = document.querySelector('#idCBSOff');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setclockbrightnessstate', 'OFF');
-                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '0');
-            }, false);
-            element = document.querySelector('#idCBSAuto');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setclockbrightnessstate', 'AUTO');
-                changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '2');
-            }, false);
-            element = document.querySelector('#idDBSOn');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setdecobrightnessstate', 'ON');
-                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '1');
-            }, false);
-            element = document.querySelector('#idDBSOff');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setdecobrightnessstate', 'OFF');
-                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0');
-            }, false);
-            element = document.querySelector('#idDBSAuto');
-            element.addEventListener('click', function(e)
-            {
-                setBrightnessState(e, 'setdecobrightnessstate', 'AUTO');
-                changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2');
-            }, false);
-        }
+  </div>
 
-    </script>
-  </body>
+  <!-- CLOCK COLORS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+      </div>
+      <span class="section-title">Clock Colors</span>
+    </div>
+    <div class="section-body">
+      <div class="color-row">
+        <div class="color-label">HOUR digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="clock_first_hour_color" value="#3A8439"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="clock_second_hour_color" value="#3A8439"><span>D2</span></div>
+        </div>
+      </div>
+      <div class="color-row">
+        <div class="color-label">MINUTE digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="clock_first_minute_color" value="#dd0000"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="clock_secod_minute_color" value="#dd0000"><span>D2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPERATURE COLORS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M15 13V5a3 3 0 1 0-6 0v8a5 5 0 1 0 6 0zm-3 7a3 3 0 0 1-1-5.83V5a1 1 0 0 1 2 0v9.17A3 3 0 0 1 12 20z"/></svg>
+      </div>
+      <span class="section-title">Temperature Colors</span>
+    </div>
+    <div class="section-body">
+      <div class="color-row">
+        <div class="color-label">VALUE digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="Temp_First_Value_Color" value="#ffffff"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="Temp_Second_Value_Color" value="#ffffff"><span>D2</span></div>
+        </div>
+      </div>
+      <div class="color-row">
+        <div class="color-label">SYMBOL digits</div>
+        <div class="color-pickers">
+          <div class="color-swatch"><input type="color" id="Temp_First_Symbol_Color" value="#0000ff"><span>D1</span></div>
+          <div class="color-swatch"><input type="color" id="Temp_Second_Symbol_Color" value="#0000ff"><span>D2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECORATION LIGHTS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M6.95 2.8C5.23 2.8 3.85 4.2 3.85 5.9c0 1.5 1.6 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8C8.05 4.2 6.67 2.8 6.95 2.8zm10.05 0c-1.72 0-3.1 1.4-3.1 3.1 0 1.5 1.65 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8 0-1.7-1.38-3.1-1.1-3.1zM12 2.8c-1.72 0-3.1 1.4-3.1 3.1 0 1.5 1.65 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8 0-1.7-1.38-3.1-1.1-3.1zM5 13h14v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"/></svg>
+      </div>
+      <span class="section-title">Decoration Lights</span>
+    </div>
+    <div class="section-body">
+      <div class="led-row-label">LINE 1</div>
+      <div class="led-grid">
+        <div class="led-item"><input type="color" id="favDLC1" value="#ffffff"><span>L1</span></div>
+        <div class="led-item"><input type="color" id="favDLC2" value="#ffffff"><span>L2</span></div>
+        <div class="led-item"><input type="color" id="favDLC3" value="#ffffff"><span>L3</span></div>
+        <div class="led-item"><input type="color" id="favDLC4" value="#ffffff"><span>L4</span></div>
+        <div class="led-item"><input type="color" id="favDLC5" value="#ffffff"><span>L5</span></div>
+        <div class="led-item"><input type="color" id="favDLC6" value="#ffffff"><span>L6</span></div>
+        <div class="led-item"><input type="color" id="favDLC7" value="#ffffff"><span>L7</span></div>
+      </div>
+      <div class="led-row-label">LINE 2</div>
+      <div class="led-grid">
+        <div class="led-item"><input type="color" id="favDLC8"  value="#ffffff"><span>L8</span></div>
+        <div class="led-item"><input type="color" id="favDLC9"  value="#ffffff"><span>L9</span></div>
+        <div class="led-item"><input type="color" id="favDLC10" value="#ffffff"><span>L10</span></div>
+        <div class="led-item"><input type="color" id="favDLC11" value="#ffffff"><span>L11</span></div>
+        <div class="led-item"><input type="color" id="favDLC12" value="#ffffff"><span>L12</span></div>
+        <div class="led-item"><input type="color" id="favDLC13" value="#ffffff"><span>L13</span></div>
+        <div class="led-item"><input type="color" id="favDLC14" value="#ffffff"><span>L14</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRIGHTNESS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+      </div>
+      <span class="section-title">Brightness Control</span>
+    </div>
+    <div class="section-body">
+      <div class="bright-row">
+        <div class="bright-row-label">CLOCK</div>
+        <div class="btn-group">
+          <button class="btn-toggle" id="idCBSOn">ON</button>
+          <button class="btn-toggle" id="idCBSOff">OFF</button>
+          <button class="btn-toggle" id="idCBSAuto">AUTO</button>
+        </div>
+      </div>
+      <div class="bright-row">
+        <div class="bright-row-label">DECORATION</div>
+        <div class="btn-group">
+          <button class="btn-toggle" id="idDBSOn">ON</button>
+          <button class="btn-toggle" id="idDBSOff">OFF</button>
+          <button class="btn-toggle" id="idDBSAuto">AUTO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPERATURE URL -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+      </div>
+      <span class="section-title">Temperature URL</span>
+    </div>
+    <div class="section-body">
+      <div class="url-row">
+        <input type="text" class="url-input" id="txtTempUrl" placeholder="http://api.example.com/temperature" value="">
+        <button class="btn-ok" type="button">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── JAVASCRIPT (original logic preserved) ── -->
+<script type="text/javascript">
+  const zeroPad = (num, places) => String(num).padStart(places, '0');
+
+  function updateUiColorClock(event, api, digit) {
+    var cor = hexToRgb(event.target.value);
+    var url = 'http://192.168.100.7/' + api + '?p=' + digit + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
+    console.log(url);
+    post(url);
+  }
+
+  function setBrightnessState(event, api, mode) {
+    var url = 'http://192.168.100.7/' + api + '?p=' + mode + '&p1=' + mode;
+    post(url);
+  }
+
+  function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? '0' + hex : hex;
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
+  }
+
+  function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  function getinfo(callback) {
+    url = 'http://192.168.100.7/getinfo';
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4) {
+        if (this.status == 200) {
+          callback(JSON.parse(this.responseText, null, ' '));
+        }
+        if (this.status == 404) {
+          elmnt.innerHTML = 'Page not found.';
+        }
+      }
+    }
+    xhttp.open('GET', url, true);
+    xhttp.send();
+  }
+
+  function post(url) {
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4) {
+        if (this.status == 200) {
+          console.log(JSON.parse(this.responseText, null, '  '));
+        }
+        if (this.status == 404) {
+          elmnt.innerHTML = 'Page not found.';
+        }
+      }
+    }
+    xhttp.open('GET', url, true);
+    xhttp.send();
+  }
+
+  function updateUiColor(component, valueHex) {
+    var x = valueHex.replace(')', '').replace('(', '').replace('#', '').split(',');
+    var cor = rgbToHex(parseInt(x[0]), parseInt(x[1]), parseInt(x[2]));
+    document.getElementById(component).value = cor;
+  }
+
+  function changeBrightState(components, valor) {
+    document.getElementById(components[0]).classList.remove('btn-success');
+    document.getElementById(components[1]).classList.remove('btn-success');
+    document.getElementById(components[2]).classList.remove('btn-success');
+    switch (valor) {
+      case '0': document.getElementById(components[1]).classList.add('btn-success'); break;
+      case '1': document.getElementById(components[0]).classList.add('btn-success'); break;
+      case '2': document.getElementById(components[2]).classList.add('btn-success'); break;
+    }
+  }
+
+  function updateUi(dados) {
+    document.getElementById('idbsm').innerHTML = dados['Brightness_Sensor_map'];
+    document.getElementById('idTemp').innerHTML = dados['Temperature'];
+    document.getElementById('idTime').innerHTML = dados['Time'];
+    document.getElementById('txtTempUrl').value = dados['Url_Temperature'];
+
+    updateUiColor('clock_first_day_color',     dados['Clock_First_Day_Color']);
+    updateUiColor('clock_second_day_color',    dados['Clock_Second_Day_Color']);
+    updateUiColor('clock_first_month_color',   dados['Clock_First_Month_Color']);
+    updateUiColor('clock_secod_month_color',   dados['Clock_Secod_Month_Color']);
+
+    updateUiColor('clock_first_hour_color',    dados['Clock_First_Hour_Color']);
+    updateUiColor('clock_second_hour_color',   dados['Clock_Second_Hour_Color']);
+    updateUiColor('clock_first_minute_color',  dados['Clock_First_Minute_Color']);
+    updateUiColor('clock_secod_minute_color',  dados['Clock_Secod_Minute_Color']);
+
+    updateUiColor('Temp_First_Value_Color',    dados['Temp_First_Value_Color']);
+    updateUiColor('Temp_Second_Value_Color',   dados['Temp_Second_Value_Color']);
+    updateUiColor('Temp_First_Symbol_Color',   dados['Temp_First_Symbol_Color']);
+    updateUiColor('Temp_Second_Symbol_Color',  dados['Temp_Second_Symbol_Color']);
+
+    var valor = dados['Clock_Brightness_Mode'][0];
+    changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], valor);
+
+    var valor = dados['Deco_Brightness_Mode'][0];
+    changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], valor);
+
+    var dadosDeco = dados['Deco_Color'].replaceAll(' ', '').split('-');
+    for (var i = 0; i <= 13; i++) {
+      updateUiColor('favDLC' + (i + 1), dadosDeco[i]);
+    }
+  }
+
+  function startup() {
+    getinfo(updateUi);
+
+    // Day of month colors
+    document.querySelector('#clock_first_day_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '1'); }, false);
+    document.querySelector('#clock_second_day_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '2'); }, false);
+    document.querySelector('#clock_first_month_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '3'); }, false);
+    document.querySelector('#clock_secod_month_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '4'); }, false);
+
+    // Clock hour/minute colors
+    document.querySelector('#clock_first_hour_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '1'); }, false);
+    document.querySelector('#clock_second_hour_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '2'); }, false);
+    document.querySelector('#clock_first_minute_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '3'); }, false);
+    document.querySelector('#clock_secod_minute_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '4'); }, false);
+
+    // Temperature colors
+    document.querySelector('#Temp_First_Value_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '1'); }, false);
+    document.querySelector('#Temp_Second_Value_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '2'); }, false);
+    document.querySelector('#Temp_First_Symbol_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '3'); }, false);
+    document.querySelector('#Temp_Second_Symbol_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '4'); }, false);
+
+    // Decoration lights
+    document.querySelector('#favDLC1').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '1'); }, false);
+    document.querySelector('#favDLC2').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '2'); }, false);
+    document.querySelector('#favDLC3').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '3'); }, false);
+    document.querySelector('#favDLC4').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '4'); }, false);
+    document.querySelector('#favDLC5').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '5'); }, false);
+    document.querySelector('#favDLC6').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '6'); }, false);
+    document.querySelector('#favDLC7').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '7'); }, false);
+    document.querySelector('#favDLC8').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '8'); }, false);
+    document.querySelector('#favDLC9').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '9'); }, false);
+    document.querySelector('#favDLC10').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '10'); }, false);
+    document.querySelector('#favDLC11').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '11'); }, false);
+    document.querySelector('#favDLC12').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '12'); }, false);
+    document.querySelector('#favDLC13').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '13'); }, false);
+    document.querySelector('#favDLC14').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '14'); }, false);
+
+    // Clock brightness
+    document.querySelector('#idCBSOn').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setclockbrightnessstate', 'ON');
+      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '1');
+    }, false);
+    document.querySelector('#idCBSOff').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setclockbrightnessstate', 'OFF');
+      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '0');
+    }, false);
+    document.querySelector('#idCBSAuto').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setclockbrightnessstate', 'AUTO');
+      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '2');
+    }, false);
+
+    // Decoration brightness
+    document.querySelector('#idDBSOn').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setdecobrightnessstate', 'ON');
+      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '1');
+    }, false);
+    document.querySelector('#idDBSOff').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setdecobrightnessstate', 'OFF');
+      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0');
+    }, false);
+    document.querySelector('#idDBSAuto').addEventListener('click', function(e) {
+      setBrightnessState(e, 'setdecobrightnessstate', 'AUTO');
+      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2');
+    }, false);
+  }
+</script>
+</body>
 </html>

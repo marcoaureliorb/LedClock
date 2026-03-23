@@ -5,29 +5,16 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Adafruit_NeoPixel.h>
-#include "Utils.h"
 #include <ESP8266HTTPClient.h>
-#include "builtinfiles.h"
-#include "secrets.h"  // add WLAN Credentials in here.
 
 // TRACE output simplified, can be deactivated here
 #define TRACE(...) Serial.printf(__VA_ARGS__)
-
-// Time zone
-const char * timeServer = "br.pool.ntp.org";
-int timeZone = -3 * 3600;
 
 // choose the brightness Clock Mode
 #define BRIGHT_OFF 0
 #define BRIGHT_ON 1
 #define BRIGHT_AUTO 2
 #define BRIGHT_DEFAULT_VALUE 50
-
-int brightnessClockMode = BRIGHT_ON;
-int brightnessSensor = BRIGHT_DEFAULT_VALUE;
-int brightnessDecoMode = BRIGHT_ON;
-
-/////////////////////////////////////////////////////////////////////////////// SETTINGS ///////////////////////////////////////////////////////////////////////////////
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define LEDCLOCK_PIN 14 // pin D5 sur esp8266/arduino nano
@@ -36,6 +23,23 @@ int brightnessDecoMode = BRIGHT_ON;
 // How many NeoPixels are attached to the Arduino?
 #define LEDCLOCK_COUNT 252
 #define LEDDECO_COUNT 14
+
+struct RGB {
+  byte r;
+  byte g;
+  byte b;
+};
+
+const char *ssid = "Biscoitao2.4G";
+const char *passPhrase = "4luci184";
+
+// Time zone
+const char * timeServer = "br.pool.ntp.org";
+int timeZone = -3 * 3600;
+
+int brightnessClockMode = BRIGHT_ON;
+int brightnessSensor = BRIGHT_DEFAULT_VALUE;
+int brightnessDecoMode = BRIGHT_ON;
 
 // Declare our NeoPixel objects:
 Adafruit_NeoPixel stripClock(LEDCLOCK_COUNT, LEDCLOCK_PIN, NEO_RGB + NEO_KHZ800);
@@ -60,6 +64,11 @@ int hour = 0;
 int minute = 0;
 int second = 0;
 
+// URL raw do HTML no GitHub (HTTPS)
+const char* HTML_URL = "https://raw.githubusercontent.com/marcoaureliorb/LedClock/refs/heads/main/WebApi/index.html";
+// Timeout para requisição HTTP ao GitHub (ms)
+const int   HTTP_TIMEOUT_MS = 8000;
+
 String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0";
 int temperature = -1;
 int timeToChangeMode = 0;
@@ -76,6 +85,55 @@ NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed 
 
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
+
+String colorToStr(RGB color){
+  return String("(") + color.r + "," + color.g + "," + color.b + ")";
+}
+
+RGB getColor(String red, String green, String blue){
+
+  RGB color = (RGB){red.toInt(), green.toInt(), blue.toInt()};
+
+  return color;
+}
+
+RGB getColor(int red, int green, int blue){
+
+  RGB color = (RGB){red, green, blue};
+
+  return color;
+}
+
+RGB stringToRGB(String str){
+  int color[3];
+  int StringCount = 0;
+
+  while (str.length() > 0)
+  {
+    int index = str.indexOf(",");
+    if (index == -1) // No space found
+    {
+      color[StringCount++] = str.toInt();
+      break;
+    }
+    else
+    {
+      color[StringCount++] = str.substring(0, index).toInt();
+      str = str.substring(index+1);
+    }
+  }
+
+  return RGB{color[0], color[1], color[2]};  
+}
+
+void printRGB(String texto, RGB color){
+  Serial.print(texto);
+  Serial.print(color.r);
+  Serial.print(", ");
+  Serial.print(color.g);
+  Serial.print(", ");
+  Serial.println(color.b);
+}
 
 void setup() {
    delay(3000);  // wait for serial monitor to start completely.
@@ -98,10 +156,7 @@ void setup() {
     Serial.print(".");
    }
 
-   serverWeb.on("/", [](){
-     serverWeb.send(200, "text/html", FPSTR(homeHtml));
-   });
-   
+   serverWeb.on("/", HTTP_GET, handleRoot);
    serverWeb.on("/getinfo", getInfoApi);
    serverWeb.on("/gettime", getTimeApi);
    serverWeb.on("/gettemperature", getTemperatureApi);
@@ -113,10 +168,6 @@ void setup() {
    serverWeb.on("/setdecocolor", setDecoColorApi);
    serverWeb.on("/setHourMinuteToShow", sethourminutetoshow);
    serverWeb.on("/showTemperature", showTemperature);
-   
-   serverWeb.onNotFound([](){
-     serverWeb.send(404, "text/html", FPSTR(notFoundContent));
-   });
    
    // enable CORS header in webserver results
    serverWeb.enableCORS(true);
@@ -298,6 +349,75 @@ void onGotIP(const WiFiEventStationModeGotIP& event)
   Serial.print("RSSI : ");
   Serial.println(WiFi.RSSI());
   Serial.println("");
+}
+
+void handleRoot() {
+  
+  Serial.println("[HTTP] Requisição recebida em /");
+  Serial.println("[HTTP] Buscando HTML do GitHub...");
+
+  // ESP8266 — usa BearSSL para HTTPS
+  WiFiClientSecure tlsClient;
+  tlsClient.setInsecure();          // Aceita qualquer certificado (sem validação de CA)
+                                    // Para produção use tlsClient.setFingerprint() ou setTrustAnchors()
+  HTTPClient http;
+  http.setTimeout(HTTP_TIMEOUT_MS);
+  http.begin(tlsClient, HTML_URL);
+
+  int httpCode = http.GET();
+  Serial.printf("[HTTP] Resposta GitHub: %d\n", httpCode);
+
+  if (httpCode == HTTP_CODE_OK) {
+    // Faz streaming do payload diretamente para o cliente Wi-Fi,
+    // sem alocar o HTML inteiro na RAM de uma só vez.
+    WiFiClient* stream = http.getStreamPtr();
+    int totalLen       = http.getSize();   // -1 se chunked
+    int bytesSent      = 0;
+
+    // Inicia a resposta HTTP com cabeçalhos
+    serverWeb.setContentLength(totalLen > 0 ? totalLen : CONTENT_LENGTH_UNKNOWN);
+    serverWeb.send(200, "text/html", "");
+
+    // Buffer de streaming — 512 bytes é seguro para ESP8266 (pouca RAM)
+    const size_t BUF_SIZE = 512;
+    uint8_t buf[BUF_SIZE];
+
+    uint32_t deadline = millis() + HTTP_TIMEOUT_MS;
+
+    while (http.connected() && millis() < deadline) {
+      size_t available = stream->available();
+      if (available == 0) {
+        delay(1);
+        continue;
+      }
+      size_t toRead = (available > BUF_SIZE) ? BUF_SIZE : available;
+      size_t read   = stream->readBytes(buf, toRead);
+      if (read > 0) {
+        serverWeb.client().write(buf, read);
+        bytesSent += read;
+        deadline   = millis() + HTTP_TIMEOUT_MS; // reseta timeout a cada chunk
+      }
+    }
+
+    Serial.printf("[HTTP] Streaming concluído: %d bytes enviados.\n", bytesSent);
+
+  } else {
+    // GitHub não respondeu OK — devolve página de erro simples
+    String errorMsg =
+      "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+      "<title>Erro</title></head><body style='font-family:monospace;"
+      "background:#07080d;color:#ff4444;padding:40px'>"
+      "<h2>Erro ao carregar interface</h2>"
+      "<p>Nao foi possivel buscar o HTML do GitHub.</p>"
+      "<p>Codigo HTTP: <b>" + String(httpCode) + "</b></p>"
+       "<p><a href='/' style='color:#00c8ff'>Tentar novamente</a></p>"
+      "</body></html>";
+
+    serverWeb.send(502, "text/html", errorMsg);
+    Serial.printf("[HTTP] Falha! Código: %d\n", httpCode);
+  }
+
+  http.end();
 }
 
 void setClockBrightnessState(){
