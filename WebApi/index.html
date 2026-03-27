@@ -1,493 +1,540 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Led Clock</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>Led Clock Config</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-base:      #07080d;
-      --bg-card:      #0e1018;
-      --bg-card2:     #141720;
-      --border:       #1e2233;
-      --border-glow:  #2a3560;
-      --accent:       #00c8ff;
-      --accent-dim:   rgba(0,200,255,.12);
-      --accent2:      #ff6b35;
-      --green:        #00e87a;
-      --green-dim:    rgba(0,232,122,.12);
-      --text-hi:      #e8eaf2;
-      --text-mid:     #8892aa;
-      --text-lo:      #3d4563;
-      --mono:         'Share Tech Mono', monospace;
-      --sans:         'Exo 2', sans-serif;
-      --radius:       10px;
-      --shadow:       0 4px 24px rgba(0,0,0,.5);
+      --bg:         #06070c;
+      --bg-card:    #0c0e17;
+      --bg-card2:   #101420;
+      --border:     #1a1f35;
+      --accent:     #00d4ff;
+      --accent-dim: rgba(0,212,255,.1);
+      --green:      #00ff88;
+      --green-dim:  rgba(0,255,136,.1);
+      --amber:      #ffb700;
+      --red:        #ff3a3a;
+      --text-hi:    #e4e8f4;
+      --text-mid:   #7a86a8;
+      --text-lo:    #2e3555;
+      --mono:       'Share Tech Mono', monospace;
+      --display:    'Orbitron', sans-serif;
+      --seg-off:    rgba(255,255,255,0.04);
+      --seg-glow:   0 0 8px currentColor, 0 0 20px currentColor;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; font-size: 110%; }
 
     body {
-      background: var(--bg-base);
+      background: var(--bg);
       color: var(--text-hi);
-      font-family: var(--sans);
+      font-family: var(--mono);
       min-height: 100vh;
       background-image:
-        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,100,180,.18) 0%, transparent 70%),
-        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.018) 40px),
-        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.018) 40px);
+        radial-gradient(ellipse 70% 50% at 50% -5%, rgba(0,80,160,.2) 0%, transparent 65%),
+        repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,.015) 48px),
+        repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,.015) 48px);
     }
 
-    /* ── HEADER ── */
+    /* HEADER */
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px;
       border-bottom: 1px solid var(--border);
-      background: rgba(14,16,24,.92);
-      backdrop-filter: blur(12px);
+      background: rgba(10,12,20,.96);
+      backdrop-filter: blur(16px);
       position: sticky; top: 0; z-index: 100;
     }
-    .logo {
-      display: flex; align-items: center; gap: 12px;
-    }
+    .logo { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 36px; height: 36px;
-      border: 2px solid var(--accent);
+      width: 38px; height: 38px;
+      border: 1.5px solid var(--accent);
       border-radius: 8px;
       display: grid; place-items: center;
-      box-shadow: 0 0 14px rgba(0,200,255,.3);
+      box-shadow: 0 0 16px rgba(0,212,255,.25), inset 0 0 10px rgba(0,212,255,.05);
     }
     .logo-icon svg { width: 20px; height: 20px; fill: var(--accent); }
-    .logo-text { font-family: var(--mono); font-size: .95rem; color: var(--accent); letter-spacing: .08em; }
-    .logo-sub  { font-size: .7rem; color: var(--text-mid); font-family: var(--mono); letter-spacing: .12em; margin-top: 1px; }
-    .header-badge {
-      font-family: var(--mono);
-      font-size: .7rem;
-      color: var(--green);
+    .logo-name { font-family: var(--display); font-size: .9rem; color: var(--accent); letter-spacing: .12em; }
+    .logo-sub  { font-size: .62rem; color: var(--text-mid); letter-spacing: .18em; margin-top: 2px; opacity: .7; }
+    .badge {
+      font-size: .65rem; color: var(--green);
       background: var(--green-dim);
-      border: 1px solid rgba(0,232,122,.25);
-      padding: 4px 10px;
-      border-radius: 20px;
-      letter-spacing: .1em;
+      border: 1px solid rgba(0,255,136,.2);
+      padding: 4px 12px; border-radius: 20px; letter-spacing: .12em;
     }
-    .header-badge::before { content: '⬤  '; font-size: .5rem; vertical-align: middle; }
+    .badge::before { content: '⬤  '; font-size: .45rem; vertical-align: middle; }
 
-    /* ── MAIN LAYOUT ── */
-    main { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+    /* MAIN */
+    main { max-width: 880px; margin: 0 auto; padding: 28px 20px 20px; }
 
-    /* ── STATUS STRIP ── */
+    /* STATUS STRIP */
     .status-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 28px;
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 24px;
     }
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      position: relative;
-      overflow: hidden;
-      transition: border-color .2s;
+    .stat {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 18px; position: relative; overflow: hidden;
     }
-    .stat-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      opacity: .6;
+    .stat::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .5;
     }
-    .stat-card:hover { border-color: var(--border-glow); }
-    .stat-label {
-      font-size: .65rem;
-      font-family: var(--mono);
-      letter-spacing: .15em;
-      color: var(--text-mid);
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .stat-value {
-      font-family: var(--mono);
-      font-size: 1.5rem;
-      color: var(--accent);
-      text-shadow: 0 0 12px rgba(0,200,255,.4);
-      min-height: 1.6rem;
-    }
+    .stat-lbl { font-size: .6rem; letter-spacing: .18em; color: var(--text-mid); text-transform: uppercase; margin-bottom: 5px; }
+    .stat-val { font-family: var(--display); font-size: 1.4rem; color: var(--accent); text-shadow: 0 0 12px rgba(0,212,255,.4); min-height: 1.5rem; }
 
-    /* ── SECTION CARDS ── */
-    .section-card {
-      background: var(--bg-card);
+    /* SECTION CARD */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+      animation: fadeUp .4s ease both;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 20px; background: var(--bg-card2); border-bottom: 1px solid var(--border);
+    }
+    .card-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--accent-dim); display: grid; place-items: center; flex-shrink: 0;
+    }
+    .card-icon svg { width: 14px; height: 14px; fill: var(--accent); }
+    .card-title { font-size: .82rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+    .card-body { padding: 22px; }
+
+    /* MODE SELECTOR */
+    .mode-selector {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .mode-btn {
+      font-family: var(--mono); font-size: .75rem; letter-spacing: .1em;
+      padding: 10px 20px; border-radius: 8px;
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 16px;
-      overflow: hidden;
+      background: transparent; color: var(--text-mid); cursor: pointer;
+      transition: all .18s; text-transform: uppercase;
     }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 20px;
-      background: var(--bg-card2);
-      border-bottom: 1px solid var(--border);
-    }
-    .section-icon {
-      width: 28px; height: 28px;
-      border-radius: 6px;
+    .mode-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .mode-btn.active {
+      border-color: var(--accent); color: var(--accent);
       background: var(--accent-dim);
-      display: grid; place-items: center;
-      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(0,212,255,.15), inset 0 0 8px rgba(0,212,255,.05);
     }
-    .section-icon svg { width: 14px; height: 14px; fill: var(--accent); }
-    .section-title {
-      font-size: .85rem;
-      font-weight: 600;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--text-hi);
-    }
-    .section-body { padding: 20px; }
 
-    /* ── COLOR ROW ── */
-    .color-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
+    /* 7-SEGMENT DISPLAY */
+    .display-container {
+      display: flex; justify-content: center; align-items: center;
+      gap: 10px; padding: 28px 0 20px; position: relative;
     }
-    .color-row:last-child { border-bottom: none; }
-    .color-label {
-      font-size: .75rem;
-      font-family: var(--mono);
-      color: var(--text-mid);
-      letter-spacing: .08em;
-      flex: 0 0 120px;
+    .digit-wrapper {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
-    .color-pickers {
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    .digit-label {
+      font-size: .6rem; letter-spacing: .15em; color: var(--text-mid);
+      text-transform: uppercase;
     }
-    .color-swatch {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    .digit {
+      position: relative; width: 60px; height: 100px;
+      cursor: pointer;
     }
-    .color-swatch span {
-      font-size: .6rem;
-      font-family: var(--mono);
-      color: var(--text-lo);
-      letter-spacing: .08em;
+
+    /* Segment layout – classic 7-seg: a top, b top-right, c bot-right, d bot, e bot-left, f top-left, g mid */
+    .seg {
+      position: absolute;
+      background: var(--seg-off);
+      border-radius: 3px;
+      transition: background .2s, box-shadow .2s;
+      cursor: pointer;
+    }
+    /* Horizontal segments: a, g, d */
+    .seg-h { width: 38px; height: 7px; left: 11px; }
+    /* Vertical segments: b, c, e, f */
+    .seg-v { width: 7px; height: 36px; }
+
+    .seg-a { top: 0px; }
+    .seg-g { top: 47px; }
+    .seg-d { top: 94px; }
+    .seg-b { right: 0; top: 5px; }
+    .seg-c { right: 0; top: 55px; }
+    .seg-f { left: 0; top: 5px; }
+    .seg-e { left: 0; top: 55px; }
+
+    .seg.lit {
+      box-shadow: var(--seg-glow);
+    }
+
+    /* colon between digits */
+    .colon {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 16px; padding-bottom: 10px; align-self: flex-end; margin-bottom: 28px;
+    }
+    .colon-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); opacity: .3;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* SEGMENT SELECTOR PANEL */
+    .seg-selector {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; margin-top: 4px;
+    }
+    .seg-selector-title {
+      font-size: .65rem; letter-spacing: .18em; color: var(--text-mid);
+      text-transform: uppercase; margin-bottom: 14px;
+    }
+    .seg-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+    }
+    .seg-ctrl {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .seg-ctrl span {
+      font-size: .58rem; color: var(--text-mid); letter-spacing: .1em;
     }
     input[type="color"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 44px; height: 44px;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      background: none;
-      cursor: pointer;
-      padding: 3px;
+      -webkit-appearance: none; appearance: none;
+      width: 36px; height: 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px; background: none; cursor: pointer; padding: 2px;
       transition: border-color .2s, box-shadow .2s;
     }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 4px; }
     input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
-    input[type="color"]:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(0,200,255,.25);
-    }
+    input[type="color"]:hover { border-color: var(--accent); box-shadow: 0 0 10px rgba(0,212,255,.2); }
 
-    /* ── LED GRID ── */
-    .led-row-label {
-      font-size: .75rem;
-      font-family: var(--mono);
-      color: var(--text-mid);
-      letter-spacing: .08em;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .led-row-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-    .led-grid {
-      display: flex;
+    /* ALL SEGMENTS CONTROL */
+    .all-seg-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
     }
-    .led-item {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .led-item span {
-      font-size: .58rem;
-      font-family: var(--mono);
-      color: var(--text-lo);
-    }
-    .led-item input[type="color"] {
-      width: 40px; height: 40px; border-radius: 50%;
-      padding: 2px;
-      border: 2px solid var(--border);
-    }
-    .led-item input[type="color"]::-webkit-color-swatch { border-radius: 50%; }
+    .all-seg-row span { font-size: .65rem; color: var(--text-mid); letter-spacing: .1em; flex: 1; }
 
-    /* ── BRIGHTNESS BUTTONS ── */
-    .btn-group {
-      display: inline-flex;
+    /* DIGIT TABS */
+    .digit-tabs {
+      display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .digit-tab {
+      font-family: var(--mono); font-size: .7rem; letter-spacing: .08em;
+      padding: 7px 16px; border-radius: 6px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
+      background: transparent; color: var(--text-mid); cursor: pointer;
+      transition: all .15s;
     }
-    .btn-toggle {
-      font-family: var(--mono);
-      font-size: .78rem;
-      letter-spacing: .1em;
-      padding: 10px 22px;
-      background: transparent;
-      color: var(--text-mid);
-      border: none;
-      cursor: pointer;
-      border-right: 1px solid var(--border);
-      transition: background .18s, color .18s;
-      position: relative;
-    }
-    .btn-toggle:last-child { border-right: none; }
-    .btn-toggle:hover {
-      background: rgba(0,200,255,.08);
-      color: var(--accent);
-    }
-    .btn-toggle.btn-success {
-      background: rgba(0,232,122,.15);
-      color: var(--green);
-      box-shadow: inset 0 0 0 1px rgba(0,232,122,.3);
+    .digit-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .digit-tab.active {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
     }
 
-    /* ── BRIGHTNESS CONTROL ROW ── */
+    /* JSON OUTPUT */
+    .json-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+    }
+    .json-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; background: var(--bg-card2); border-bottom: 1px solid var(--border);
+    }
+    .json-title { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+    .json-actions { display: flex; gap: 8px; }
+    .btn-sm {
+      font-family: var(--mono); font-size: .7rem; letter-spacing: .08em;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      border: 1px solid rgba(0,212,255,.35); background: var(--accent-dim); color: var(--accent);
+      transition: all .15s;
+    }
+    .btn-sm:hover { background: rgba(0,212,255,.2); box-shadow: 0 0 12px rgba(0,212,255,.15); }
+    .btn-send {
+      border-color: rgba(0,255,136,.35); background: var(--green-dim); color: var(--green);
+    }
+    .btn-send:hover { background: rgba(0,255,136,.2); box-shadow: 0 0 12px rgba(0,255,136,.15); }
+    pre#jsonOutput {
+      margin: 0; padding: 18px 22px;
+      font-family: var(--mono); font-size: .78rem; line-height: 1.6;
+      color: var(--text-hi); overflow-x: auto;
+      max-height: 320px;
+    }
+    pre#jsonOutput .key   { color: #7dd3fc; }
+    pre#jsonOutput .str   { color: #86efac; }
+    pre#jsonOutput .num   { color: #fbbf24; }
+    pre#jsonOutput .punct { color: var(--text-mid); }
+
+    /* OTHER CARDS (brightness, decoration, rainbow, temp url) */
     .bright-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
     }
     .bright-row:last-child { border-bottom: none; }
-    .bright-row-label {
-      font-size: .75rem;
-      font-family: var(--mono);
-      color: var(--text-mid);
-      letter-spacing: .08em;
-      flex: 0 0 140px;
+    .bright-lbl { font-size: .73rem; letter-spacing: .08em; color: var(--text-mid); flex: 0 0 140px; }
+    .btn-group { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .btn-toggle {
+      font-family: var(--mono); font-size: .75rem; letter-spacing: .1em;
+      padding: 9px 20px; background: transparent; color: var(--text-mid);
+      border: none; border-right: 1px solid var(--border); cursor: pointer; transition: all .15s;
     }
+    .btn-toggle:last-child { border-right: none; }
+    .btn-toggle:hover { background: var(--accent-dim); color: var(--accent); }
+    .btn-toggle.btn-success { background: var(--green-dim); color: var(--green); box-shadow: inset 0 0 0 1px rgba(0,255,136,.25); }
 
-    /* ── URL INPUT ── */
-    .url-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
+    .led-row-lbl {
+      font-size: .65rem; letter-spacing: .18em; color: var(--text-mid);
+      margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
+    .led-row-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .led-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .led-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .led-item span { font-size: .56rem; color: var(--text-lo); }
+    .led-item input[type="color"] { width: 38px; height: 38px; border-radius: 50%; padding: 2px; }
+    .led-item input[type="color"]::-webkit-color-swatch { border-radius: 50%; }
+
+    .other-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .other-row:last-child { border-bottom: none; }
+    .other-lbl { font-size: .73rem; color: var(--text-mid); flex: 0 0 140px; }
+    .rainbow-speed-wrap { display: flex; align-items: center; gap: 8px; }
+    .rainbow-speed-input {
+      width: 68px; background: var(--bg); border: 1px solid var(--accent);
+      border-radius: 7px; color: var(--accent); font-family: var(--mono);
+      font-size: .85rem; padding: 7px 10px; outline: none; text-align: center;
+    }
+    .rainbow-speed-input::-webkit-inner-spin-button, .rainbow-speed-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .url-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .url-input {
-      flex: 1;
-      min-width: 200px;
-      background: var(--bg-base);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-hi);
-      font-family: var(--mono);
-      font-size: .82rem;
-      padding: 10px 14px;
-      outline: none;
-      transition: border-color .2s, box-shadow .2s;
+      flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-hi); font-family: var(--mono); font-size: .8rem;
+      padding: 10px 14px; outline: none; transition: border-color .2s, box-shadow .2s;
     }
-    .url-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(0,200,255,.1);
-    }
+    .url-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.1); }
     .url-input::placeholder { color: var(--text-lo); }
-    .btn-ok {
-      font-family: var(--mono);
-      font-size: .8rem;
-      letter-spacing: .1em;
-      padding: 10px 22px;
-      background: var(--accent-dim);
-      border: 1px solid rgba(0,200,255,.35);
-      color: var(--accent);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background .18s, box-shadow .18s;
-      white-space: nowrap;
-    }
-    .btn-ok:hover {
-      background: rgba(0,200,255,.2);
-      box-shadow: 0 0 16px rgba(0,200,255,.2);
-    }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 600px) {
-      header { padding: 14px 16px; }
-      .status-strip { grid-template-columns: 1fr 1fr; }
-      .status-strip .stat-card:last-child { grid-column: 1 / -1; }
-      .stat-value { font-size: 1.2rem; }
-      .color-label { flex: 0 0 100%; }
-      .bright-row-label { flex: 0 0 100%; }
-      .btn-toggle { padding: 9px 14px; font-size: .72rem; }
-      .url-row { flex-direction: column; }
-      .url-input { width: 100%; }
-      main { padding: 16px 12px 50px; }
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--bg-card2); border: 1px solid var(--green);
+      color: var(--green); font-family: var(--mono); font-size: .78rem;
+      padding: 10px 20px; border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,255,136,.15);
+      opacity: 0; transform: translateY(10px);
+      transition: all .3s; pointer-events: none; z-index: 999;
+	  white-space: pre-line;
     }
+    .toast.show { opacity: 1; transform: translateY(0); }
+	
+	.toast.error {
+	  border-color: var(--red); color: var(--red);
+	  box-shadow: 0 4px 20px rgba(255,0,136,.15);
+	}
 
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-base); }
-    ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-    /* ── FADE IN ── */
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .section-card { animation: fadeUp .35s ease both; }
-    .section-card:nth-child(1) { animation-delay: .05s; }
-    .section-card:nth-child(2) { animation-delay: .10s; }
-    .section-card:nth-child(3) { animation-delay: .15s; }
-    .section-card:nth-child(4) { animation-delay: .20s; }
-    .section-card:nth-child(5) { animation-delay: .25s; }
-    .section-card:nth-child(6) { animation-delay: .30s; }
+    .card:nth-child(1) { animation-delay: .05s; }
+    .card:nth-child(2) { animation-delay: .10s; }
+    .card:nth-child(3) { animation-delay: .15s; }
+    .card:nth-child(4) { animation-delay: .20s; }
+    .card:nth-child(5) { animation-delay: .25s; }
+
+    @media (max-width: 600px) {
+      header { padding: 12px 16px; }
+      .status-strip { grid-template-columns: 1fr 1fr; }
+      .status-strip .stat:last-child { grid-column: 1/-1; }
+      .digit { width: 48px; height: 82px; }
+      .seg-h { width: 30px; height: 6px; left: 9px; }
+      .seg-v { width: 6px; height: 29px; }
+      .seg-a { top: 0; }
+      .seg-g { top: 38px; }
+      .seg-d { top: 76px; }
+      .seg-b { top: 4px; }
+      .seg-c { top: 43px; }
+      .seg-f { top: 4px; }
+      .seg-e { top: 43px; }
+      .seg-grid { grid-template-columns: repeat(4,1fr); }
+      main { padding: 16px 12px 60px; }
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
   </style>
 </head>
-<body onload="startup();">
+<body onload="startup()">
 
-<!-- ── HEADER ── -->
+<!-- HEADER -->
 <header>
   <div class="logo">
     <div class="logo-icon">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-      </svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
     </div>
     <div>
-      <div class="logo-text">LED CLOCK</div>
+      <div class="logo-name">LED CLOCK</div>
       <div class="logo-sub">REST API PANEL</div>
     </div>
   </div>
-  <div class="header-badge">ONLINE</div>
+  <div class="badge">ONLINE</div>
 </header>
 
-<!-- ── MAIN ── -->
 <main>
 
-  <!-- STATUS -->
+  <!-- STATUS STRIP -->
   <div class="status-strip">
-    <div class="stat-card">
-      <div class="stat-label">Current Time</div>
-      <div class="stat-value" id="idTime">--:--</div>
+    <div class="stat">
+      <div class="stat-lbl">Current Time</div>
+      <div class="stat-val" id="idTime">--:--</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Temperature</div>
-      <div class="stat-value" id="idTemp">--°</div>
+    <div class="stat">
+      <div class="stat-lbl">Temperature</div>
+      <div class="stat-val" id="idTemp">--°</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Brightness Sensor</div>
-      <div class="stat-value" id="idbsm">---</div>
-    </div>
-  </div>
-
-  <!-- DAY OF MONTH COLORS -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
-        <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
-      </div>
-      <span class="section-title">Day of Month</span>
-    </div>
-    <div class="section-body">
-      <div class="color-row">
-        <div class="color-label">DAY digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="clock_first_day_color" value="#3A8439"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="clock_second_day_color" value="#3A8439"><span>D2</span></div>
-        </div>
-      </div>
-      <div class="color-row">
-        <div class="color-label">MONTH digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="clock_first_month_color" value="#dd0000"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="clock_secod_month_color" value="#dd0000"><span>D2</span></div>
-        </div>
-      </div>
+    <div class="stat">
+      <div class="stat-lbl">Brightness Sensor</div>
+      <div class="stat-val" id="idbsm">---</div>
     </div>
   </div>
 
-  <!-- CLOCK COLORS -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+  <!-- DISPLAY COLOR CONFIGURATION -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 22H5.71c.51-1.56 1.03-2.91 1.71-4.04A8.1 8.1 0 0 0 11 19.4V21h2v-1.6a8.1 8.1 0 0 0 3.58-1.44C18.97 19.09 19.49 20.44 20 22h1.89C19.6 15.9 17.17 9.2 17 8zM12 17.6a6.08 6.08 0 0 1-2.13-.47C10.54 15.7 11.2 14.24 12 13c.8 1.24 1.46 2.7 2.13 4.13A6.08 6.08 0 0 1 12 17.6z"/></svg>
       </div>
-      <span class="section-title">Clock Colors</span>
+      <span class="card-title">Display Color Configuration</span>
     </div>
-    <div class="section-body">
-      <div class="color-row">
-        <div class="color-label">HOUR digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="clock_first_hour_color" value="#3A8439"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="clock_second_hour_color" value="#3A8439"><span>D2</span></div>
-        </div>
-      </div>
-      <div class="color-row">
-        <div class="color-label">MINUTE digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="clock_first_minute_color" value="#dd0000"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="clock_secod_minute_color" value="#dd0000"><span>D2</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="card-body">
 
-  <!-- TEMPERATURE COLORS -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
-        <svg viewBox="0 0 24 24"><path d="M15 13V5a3 3 0 1 0-6 0v8a5 5 0 1 0 6 0zm-3 7a3 3 0 0 1-1-5.83V5a1 1 0 0 1 2 0v9.17A3 3 0 0 1 12 20z"/></svg>
-      </div>
-      <span class="section-title">Temperature Colors</span>
-    </div>
-    <div class="section-body">
-      <div class="color-row">
-        <div class="color-label">VALUE digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="Temp_First_Value_Color" value="#ffffff"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="Temp_Second_Value_Color" value="#ffffff"><span>D2</span></div>
+      <!-- MODE TABS -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:.62rem;letter-spacing:.18em;color:var(--text-mid);text-transform:uppercase;margin-bottom:10px;">Select Display Mode</div>
+        <div class="mode-selector">
+          <button class="mode-btn active" onclick="setMode('day')" id="modeDay">
+            📅 Day of Month
+          </button>
+          <button class="mode-btn" onclick="setMode('clock')" id="modeClock">
+            🕐 Clock Colors
+          </button>
+          <button class="mode-btn" onclick="setMode('temp')" id="modeTemp">
+            🌡 Temperature
+          </button>
         </div>
       </div>
-      <div class="color-row">
-        <div class="color-label">SYMBOL digits</div>
-        <div class="color-pickers">
-          <div class="color-swatch"><input type="color" id="Temp_First_Symbol_Color" value="#0000ff"><span>D1</span></div>
-          <div class="color-swatch"><input type="color" id="Temp_Second_Symbol_Color" value="#0000ff"><span>D2</span></div>
+
+      <!-- MODE DESCRIPTION -->
+      <div id="modeDesc" style="font-size:.68rem;color:var(--text-mid);letter-spacing:.06em;margin-bottom:20px;padding:10px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+        Digits 1-2 = Day &nbsp;|&nbsp; Digits 3-4 = Month
+      </div>
+
+      <!-- 7-SEGMENT DISPLAY -->
+      <div class="display-container">
+        <div class="digit-wrapper">
+          <div class="digit-label" id="dlbl1">D1</div>
+          <div class="digit" id="digit1" onclick="selectDigit(1)">
+            <div class="seg seg-h seg-a" id="d1sa"></div>
+            <div class="seg seg-v seg-b" id="d1sb"></div>
+            <div class="seg seg-v seg-c" id="d1sc"></div>
+            <div class="seg seg-h seg-d" id="d1sd"></div>
+            <div class="seg seg-v seg-e" id="d1se"></div>
+            <div class="seg seg-v seg-f" id="d1sf"></div>
+            <div class="seg seg-h seg-g" id="d1sg"></div>
+          </div>
+        </div>
+
+        <div class="digit-wrapper">
+          <div class="digit-label" id="dlbl2">D2</div>
+          <div class="digit" id="digit2" onclick="selectDigit(2)">
+            <div class="seg seg-h seg-a" id="d2sa"></div>
+            <div class="seg seg-v seg-b" id="d2sb"></div>
+            <div class="seg seg-v seg-c" id="d2sc"></div>
+            <div class="seg seg-h seg-d" id="d2sd"></div>
+            <div class="seg seg-v seg-e" id="d2se"></div>
+            <div class="seg seg-v seg-f" id="d2sf"></div>
+            <div class="seg seg-h seg-g" id="d2sg"></div>
+          </div>
+        </div>
+
+        <div class="colon">
+          <div class="colon-dot"></div>
+          <div class="colon-dot"></div>
+        </div>
+
+        <div class="digit-wrapper">
+          <div class="digit-label" id="dlbl3">D3</div>
+          <div class="digit" id="digit3" onclick="selectDigit(3)">
+            <div class="seg seg-h seg-a" id="d3sa"></div>
+            <div class="seg seg-v seg-b" id="d3sb"></div>
+            <div class="seg seg-v seg-c" id="d3sc"></div>
+            <div class="seg seg-h seg-d" id="d3sd"></div>
+            <div class="seg seg-v seg-e" id="d3se"></div>
+            <div class="seg seg-v seg-f" id="d3sf"></div>
+            <div class="seg seg-h seg-g" id="d3sg"></div>
+          </div>
+        </div>
+
+        <div class="digit-wrapper">
+          <div class="digit-label" id="dlbl4">D4</div>
+          <div class="digit" id="digit4" onclick="selectDigit(4)">
+            <div class="seg seg-h seg-a" id="d4sa"></div>
+            <div class="seg seg-v seg-b" id="d4sb"></div>
+            <div class="seg seg-v seg-c" id="d4sc"></div>
+            <div class="seg seg-h seg-d" id="d4sd"></div>
+            <div class="seg seg-v seg-e" id="d4se"></div>
+            <div class="seg seg-v seg-f" id="d4sf"></div>
+            <div class="seg seg-h seg-g" id="d4sg"></div>
+          </div>
         </div>
       </div>
+
+      <!-- SEGMENT COLOR CONTROLS -->
+      <div class="seg-selector">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="seg-selector-title" style="margin-bottom:0;">
+            Segment colors — Digit <span id="activeDigitLabel">1</span>
+          </div>
+          <div class="digit-tabs">
+            <button class="digit-tab active" onclick="selectDigit(1)" id="dtab1">D1</button>
+            <button class="digit-tab" onclick="selectDigit(2)" id="dtab2">D2</button>
+            <button class="digit-tab" onclick="selectDigit(3)" id="dtab3">D3</button>
+            <button class="digit-tab" onclick="selectDigit(4)" id="dtab4">D4</button>
+          </div>
+        </div>
+
+        <div class="seg-grid">
+          <div class="seg-ctrl"><span>A (top)</span><input type="color" id="cp_a" value="#00d4ff" onchange="applySegColor('a',this.value)"></div>
+          <div class="seg-ctrl"><span>B (top-R)</span><input type="color" id="cp_b" value="#00d4ff" onchange="applySegColor('b',this.value)"></div>
+          <div class="seg-ctrl"><span>C (bot-R)</span><input type="color" id="cp_c" value="#00d4ff" onchange="applySegColor('c',this.value)"></div>
+          <div class="seg-ctrl"><span>D (bot)</span><input type="color" id="cp_d" value="#00d4ff" onchange="applySegColor('d',this.value)"></div>
+          <div class="seg-ctrl"><span>E (bot-L)</span><input type="color" id="cp_e" value="#00d4ff" onchange="applySegColor('e',this.value)"></div>
+          <div class="seg-ctrl"><span>F (top-L)</span><input type="color" id="cp_f" value="#00d4ff" onchange="applySegColor('f',this.value)"></div>
+          <div class="seg-ctrl"><span>G (mid)</span><input type="color" id="cp_g" value="#00d4ff" onchange="applySegColor('g',this.value)"></div>
+        </div>
+
+        <div class="all-seg-row">
+          <span>Apply same color to all 7 segments of this digit</span>
+          <input type="color" id="cp_all" value="#00d4ff">
+          <button class="btn-sm" onclick="applyAllSegs(document.getElementById('cp_all').value)">Apply to digit</button>
+          <button class="btn-sm" onclick="applyAllDigits()">Apply to all 4 digits</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- DECORATION LIGHTS -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">
         <svg viewBox="0 0 24 24"><path d="M6.95 2.8C5.23 2.8 3.85 4.2 3.85 5.9c0 1.5 1.6 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8C8.05 4.2 6.67 2.8 6.95 2.8zm10.05 0c-1.72 0-3.1 1.4-3.1 3.1 0 1.5 1.65 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8 0-1.7-1.38-3.1-1.1-3.1zM12 2.8c-1.72 0-3.1 1.4-3.1 3.1 0 1.5 1.65 4 2.1 4.8.45-.8 2.1-3.3 2.1-4.8 0-1.7-1.38-3.1-1.1-3.1zM5 13h14v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"/></svg>
       </div>
-      <span class="section-title">Decoration Lights</span>
+      <span class="card-title">Decoration Lights</span>
     </div>
-    <div class="section-body">
-      <div class="led-row-label">LINE 1</div>
+    <div class="card-body">
+      <div class="led-row-lbl">LINE 1</div>
       <div class="led-grid">
         <div class="led-item"><input type="color" id="favDLC1" value="#ffffff"><span>L1</span></div>
         <div class="led-item"><input type="color" id="favDLC2" value="#ffffff"><span>L2</span></div>
@@ -497,7 +544,12 @@
         <div class="led-item"><input type="color" id="favDLC6" value="#ffffff"><span>L6</span></div>
         <div class="led-item"><input type="color" id="favDLC7" value="#ffffff"><span>L7</span></div>
       </div>
-      <div class="led-row-label">LINE 2</div>
+      <div class="all-seg-row">
+        <span>Apply same color to all LEDs in Line 1</span>
+        <input type="color" id="cp_line1_all" value="#ffffff">
+        <button class="btn-sm" onclick="applyDecoLine(document.getElementById('cp_line1_all').value, 1, 7)">Apply to Line 1</button>
+      </div>
+      <div class="led-row-lbl" style="margin-top:18px;">LINE 2</div>
       <div class="led-grid">
         <div class="led-item"><input type="color" id="favDLC8"  value="#ffffff"><span>L8</span></div>
         <div class="led-item"><input type="color" id="favDLC9"  value="#ffffff"><span>L9</span></div>
@@ -507,20 +559,25 @@
         <div class="led-item"><input type="color" id="favDLC13" value="#ffffff"><span>L13</span></div>
         <div class="led-item"><input type="color" id="favDLC14" value="#ffffff"><span>L14</span></div>
       </div>
+      <div class="all-seg-row">
+        <span>Apply same color to all LEDs in Line 2</span>
+        <input type="color" id="cp_line2_all" value="#ffffff">
+        <button class="btn-sm" onclick="applyDecoLine(document.getElementById('cp_line2_all').value, 8, 14)">Apply to Line 2</button>
+      </div>
     </div>
   </div>
 
-  <!-- BRIGHTNESS -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
+  <!-- BRIGHTNESS CONTROL -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">
         <svg viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
       </div>
-      <span class="section-title">Brightness Control</span>
+      <span class="card-title">Brightness Control</span>
     </div>
-    <div class="section-body">
+    <div class="card-body">
       <div class="bright-row">
-        <div class="bright-row-label">CLOCK</div>
+        <div class="bright-lbl">CLOCK</div>
         <div class="btn-group">
           <button class="btn-toggle" id="idCBSOn">ON</button>
           <button class="btn-toggle" id="idCBSOff">OFF</button>
@@ -528,7 +585,7 @@
         </div>
       </div>
       <div class="bright-row">
-        <div class="bright-row-label">DECORATION</div>
+        <div class="bright-lbl">DECORATION</div>
         <div class="btn-group">
           <button class="btn-toggle" id="idDBSOn">ON</button>
           <button class="btn-toggle" id="idDBSOff">OFF</button>
@@ -538,206 +595,470 @@
     </div>
   </div>
 
-  <!-- TEMPERATURE URL -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-icon">
-        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+  <!-- OTHER / RAINBOW -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
       </div>
-      <span class="section-title">Temperature URL</span>
+      <span class="card-title">Other</span>
     </div>
-    <div class="section-body">
-      <div class="url-row">
-        <input type="text" class="url-input" id="txtTempUrl" placeholder="http://api.example.com/temperature" value="">
-        <button class="btn-ok" type="button">SAVE</button>
+    <div class="card-body">
+      <div class="other-row">
+        <div class="other-lbl">RAINBOW</div>
+        <div class="btn-group">
+          <button class="btn-toggle" id="idRainbowOn"  onclick="setRainbowState('ON')">ON</button>
+          <button class="btn-toggle" id="idRainbowOff" onclick="setRainbowState('OFF')">OFF</button>
+        </div>
+        <div class="rainbow-speed-wrap" id="rainbowSpeedWrap" style="display:none">
+          <span style="font-size:.68rem;color:var(--text-mid);white-space:nowrap;">SPEED</span>
+          <input type="number" class="rainbow-speed-input" id="rainbowSpeed" min="1" max="10" value="5"
+            oninput="clampRainbowSpeed(this)" onchange="sendRainbowSpeed(this.value)">
+          <span style="font-size:.6rem;color:var(--text-lo);">1–10</span>
+        </div>
+      </div>
+      <div class="other-row">
+        <div class="other-lbl">TEMP URL</div>
+        <div class="url-row" style="flex:1">
+          <input type="text" class="url-input" id="txtTempUrl" placeholder="http://api.example.com/temperature">
+        </div>
       </div>
     </div>
   </div>
-
 </main>
 
-<!-- ── JAVASCRIPT (original logic preserved) ── -->
-<script type="text/javascript">
-  const zeroPad = (num, places) => String(num).padStart(places, '0');
+<!-- APLICAR BUTTON -->
+<div style="max-width:880px;margin:0 auto;padding:0 20px 48px;display:flex;justify-content:flex-end;">
+  <button class="btn-sm btn-send" onclick="sendAll()" style="padding:14px 48px;font-size:.9rem;letter-spacing:.14em;">Apply configuration</button>
+</div>
 
-  function updateUiColorClock(event, api, digit) {
-    var cor = hexToRgb(event.target.value);
-    var url = 'http://192.168.100.7/' + api + '?p=' + digit + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
-    console.log(url);
-    post(url);
+<div class="toast" id="toast">✓ Configuração enviada ao servidor</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const BASE_URL = 'http://192.168.100.7';
+
+// Per-mode, per-digit, per-segment color storage
+// segColors[mode][digit][seg] = '#rrggbb'
+const MODES = ['day', 'clock', 'temp'];
+const SEGS  = ['a','b','c','d','e','f','g'];
+
+const segColors = {};
+MODES.forEach(m => {
+  segColors[m] = {};
+  [1,2,3,4].forEach(d => {
+    segColors[m][d] = {};
+    SEGS.forEach(s => { segColors[m][d][s] = '#00d4ff'; });
+  });
+});
+
+// Default colors per mode (initial)
+const modeDefaults = {
+  day:   { 1: '#3a8439', 2: '#3a8439', 3: '#dd0000', 4: '#dd0000' },
+  clock: { 1: '#3a8439', 2: '#3a8439', 3: '#dd0000', 4: '#dd0000' },
+  temp:  { 1: '#ffffff', 2: '#ffffff', 3: '#0000ff', 4: '#0000ff' },
+};
+
+// Apply defaults
+MODES.forEach(m => {
+  [1,2,3,4].forEach(d => {
+    const c = modeDefaults[m][d];
+    SEGS.forEach(s => { segColors[m][d][s] = c; });
+  });
+});
+
+let currentMode  = 'day';
+let currentDigit = 1;
+
+// Demo 8-segment patterns to light (segments that form an '8')
+const demo8 = ['a','b','c','d','e','f','g'];
+
+// ─── MODE SWITCHING ───────────────────────────────────────────────────────────
+const modeDescriptions = {
+  day:   'Digits 1-2 = Day &nbsp;|&nbsp; Digits 3-4 = Month',
+  clock: 'Digits 1-2 = Hours &nbsp;|&nbsp; Digits 3-4 = Minutes',
+  temp:  'Digits 1-2 = Temperature value &nbsp;|&nbsp; Digits 3-4 = °C / °F symbol',
+};
+const modeDigitLabels = {
+  day:   ['D1','D2','M1','M2'],
+  clock: ['H1','H2','M1','M2'],
+  temp:  ['V1','V2','S1','S2'],
+};
+
+function setMode(m) {
+  currentMode = m;
+  ['day','clock','temp'].forEach(x => {
+    document.getElementById('mode'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('active', x===m);
+  });
+  document.getElementById('modeDesc').innerHTML = modeDescriptions[m];
+  // Update digit labels
+  const lbls = modeDigitLabels[m];
+  [1,2,3,4].forEach((d,i) => { document.getElementById('dlbl'+d).textContent = lbls[i]; });
+  // Refresh display
+  refreshDisplay();
+  selectDigit(currentDigit);
+}
+
+// ─── DISPLAY RENDERING ────────────────────────────────────────────────────────
+function refreshDisplay() {
+  [1,2,3,4].forEach(d => {
+    SEGS.forEach(s => {
+      const el = document.getElementById('d'+d+'s'+s);
+      const col = segColors[currentMode][d][s];
+      el.style.background = col;
+      el.classList.add('lit');
+      el.style.color = col;
+    });
+    // Highlight selected digit
+    const dEl = document.getElementById('digit'+d);
+    dEl.style.outline = d === currentDigit ? '2px solid var(--accent)' : 'none';
+    dEl.style.outlineOffset = '4px';
+    dEl.style.borderRadius = '6px';
+  });
+}
+
+// ─── DIGIT SELECTION ──────────────────────────────────────────────────────────
+function selectDigit(d) {
+  currentDigit = d;
+  [1,2,3,4].forEach(i => {
+    document.getElementById('dtab'+i).classList.toggle('active', i===d);
+  });
+  document.getElementById('activeDigitLabel').textContent = d;
+  // Update color pickers to match stored values
+  SEGS.forEach(s => {
+    document.getElementById('cp_'+s).value = segColors[currentMode][d][s];
+  });
+  refreshDisplay();
+}
+
+// ─── APPLY SEGMENT COLOR ──────────────────────────────────────────────────────
+function applySegColor(seg, color) {
+  segColors[currentMode][currentDigit][seg] = color;
+  const el = document.getElementById('d'+currentDigit+'s'+seg);
+  el.style.background = color;
+  el.style.color = color;
+}
+
+function applyAllSegs(color) {
+  SEGS.forEach(s => {
+    segColors[currentMode][currentDigit][s] = color;
+    document.getElementById('cp_'+s).value = color;
+    const el = document.getElementById('d'+currentDigit+'s'+s);
+    el.style.background = color;
+    el.style.color = color;
+  });
+}
+
+function applyDecoLine(color, from, to) {
+  for (var i = from; i <= to; i++) {
+    document.getElementById('favDLC'+i).value = color;
+  }
+}
+
+function applyAllDigits() {
+  const refColors = {};
+  SEGS.forEach(s => { refColors[s] = segColors[currentMode][currentDigit][s]; });
+  [1,2,3,4].forEach(d => {
+    SEGS.forEach(s => {
+      segColors[currentMode][d][s] = refColors[s];
+      const el = document.getElementById('d'+d+'s'+s);
+      el.style.background = refColors[s];
+      el.style.color = refColors[s];
+    });
+  });
+}
+
+// ─── PAYLOAD BUILDER ─────────────────────────────────────────────────────────
+function buildPayload() {
+  // Collect decoration colors
+  const decoColors = [];
+  for (var i = 1; i <= 14; i++) {
+    decoColors.push(document.getElementById('favDLC'+i).value);
   }
 
-  function setBrightnessState(event, api, mode) {
-    var url = 'http://192.168.100.7/' + api + '?p=' + mode + '&p1=' + mode;
-    post(url);
+  // Collect brightness state as ON/OFF/AUTO
+  function activeBright(onId, offId, autoId) {
+    if (document.getElementById(onId).classList.contains('btn-success'))   return 'ON';
+    if (document.getElementById(offId).classList.contains('btn-success'))  return 'OFF';
+    if (document.getElementById(autoId).classList.contains('btn-success')) return 'AUTO';
+    return 'ON';
   }
 
-  function componentToHex(c) {
-    var hex = c.toString(16);
-    return hex.length == 1 ? '0' + hex : hex;
-  }
+  // Build per-mode digit colors (hex only)
+  const displayModes = {};
+  MODES.forEach(m => {
+    displayModes[m] = { digits: {} };
+    [1,2,3,4].forEach(d => {
+      const segs = [];
+      SEGS.forEach((v,i) => { segs[i] = segColors[m][d][v]; });
+      displayModes[m].digits[d] = segs;
+    });
+  });
 
-  function rgbToHex(r, g, b) {
-    return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
-  }
+  return {
+    display: displayModes,
+    decoration: {
+        l1: decoColors.slice(0, 7).map(hex => hex),
+		l2: decoColors.slice(7, 14).map(hex => hex)
+	},
+    brightness: {
+      clock:      activeBright('idCBSOn', 'idCBSOff', 'idCBSAuto'),
+      decoration: activeBright('idDBSOn', 'idDBSOff', 'idDBSAuto'),
+    },
+    rainbow: {
+      state: document.getElementById('idRainbowOn').classList.contains('btn-success') ? 'ON' : 'OFF',
+      speed: parseInt(document.getElementById('rainbowSpeed').value) || 5,
+    },
+    temperature_url: document.getElementById('txtTempUrl').value,
+  };
+}
 
-  function hexToRgb(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  }
+// ─── SEND ALL ─────────────────────────────────────────────────────────────────
+function sendAll() {
+  const payload = buildPayload();
+  console.log('Payload:', JSON.stringify(payload, null, 2));
+  post(BASE_URL + '/SetConfig', payload, '✓ Configuration saved successfully.', 'Error saving configuration.');
+}
 
-  function getinfo(callback) {
-    url = 'http://192.168.100.7/getinfo';
-    xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4) {
-        if (this.status == 200) {
-          callback(JSON.parse(this.responseText, null, ' '));
-        }
-        if (this.status == 404) {
-          elmnt.innerHTML = 'Page not found.';
-        }
-      }
-    }
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToastSuccess(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  t.classList.remove('error');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function showToastError(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  t.classList.add('error');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function setRainbowState(mode) {
+  var wrap = document.getElementById('rainbowSpeedWrap');
+  var btnOn  = document.getElementById('idRainbowOn');
+  var btnOff = document.getElementById('idRainbowOff');
+  btnOn.classList.remove('btn-success');
+  btnOff.classList.remove('btn-success');
+  if (mode === 'ON') {
+    btnOn.classList.add('btn-success');
+    wrap.style.display = 'flex';
+  } else {
+    btnOff.classList.add('btn-success');
+    wrap.style.display = 'none';
+  }
+}
+
+function clampRainbowSpeed(input) {
+  var v = parseInt(input.value);
+  if (isNaN(v)) return;
+  if (v < 1)  input.value = 1;
+  if (v > 10) input.value = 10;
+}
+
+function sendRainbowSpeed(value) {
+  var v = parseInt(value);
+  if (isNaN(v) || v < 1 || v > 10) return;
+}
+
+function setBrightnessState(event, api, mode) {
+  // state stored in btn-success class; sent on Aplicar
+}
+
+function changeBrightState(components, valor) {
+  components.forEach(id => document.getElementById(id).classList.remove('btn-success'));
+  const map = { '0': 1, '1': 0, '2': 2 };
+  if (map[valor] !== undefined) document.getElementById(components[map[valor]]).classList.add('btn-success');
+}
+
+function post(url, body, msgSuccess, msgError) {
+  var xhttp = new XMLHttpRequest();
+  
+  xhttp.onreadystatechange = function() {
+    if (this.readyState === 4) {
+		if (this.status === 200) {
+			try {
+				console.log(JSON.parse(this.responseText)); 
+				showToastSuccess(msgSuccess);
+			} catch(e) {
+				showToastError(msgError);
+			}
+		} else {
+			showToastError(msgError);
+		}
+	}
+  };
+  
+  if (body) {
+    xhttp.open('POST', url, true);
+    xhttp.setRequestHeader('Content-Type', 'application/json');
+    xhttp.send(JSON.stringify(body));
+  } else {
     xhttp.open('GET', url, true);
     xhttp.send();
   }
+}
 
-  function post(url) {
-    xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4) {
-        if (this.status == 200) {
-          console.log(JSON.parse(this.responseText, null, '  '));
-        }
-        if (this.status == 404) {
-          elmnt.innerHTML = 'Page not found.';
-        }
+function loadState() {
+  var xhttp = new XMLHttpRequest();
+  
+  xhttp.onreadystatechange = function() {
+    if (this.readyState === 4) {
+      if (this.status === 200) {
+        try { 
+			applyState(JSON.parse(this.responseText)); 
+		}
+		catch(e) {
+			console.error('GetState parse error:', e);
+			applyState(getDefaultConfiguration());
+			showToastError("Error retrieving configuration from server.\nLoading default configuration.");
+		}
+      } else {
+        console.warn('GetState returned status', this.status);
+		applyState(getDefaultConfiguration());
+		showToastError("Error retrieving configuration from server.\nLoading default configuration.");
       }
     }
-    xhttp.open('GET', url, true);
-    xhttp.send();
+  };
+  
+  xhttp.open('GET', BASE_URL + '/GetState', true);
+  xhttp.send();
+  
+}
+
+function applyState(s) {
+  // Display colors
+  if (s.display) {
+    MODES.forEach(m => {
+      if (!s.display[m] || !s.display[m].digits) return;
+      [1,2,3,4].forEach(d => {
+        var digData = s.display[m].digits['D'+d];
+        if (!digData) return;
+        SEGS.forEach(seg => {
+          var hex = digData[seg.toUpperCase()];
+          if (hex) segColors[m][d][seg] = hex;
+        });
+      });
+    });
   }
 
-  function updateUiColor(component, valueHex) {
-    var x = valueHex.replace(')', '').replace('(', '').replace('#', '').split(',');
-    var cor = rgbToHex(parseInt(x[0]), parseInt(x[1]), parseInt(x[2]));
-    document.getElementById(component).value = cor;
+  // Decoration LEDs
+  if (s.decoration) {
+    s.decoration.forEach(function(item) {
+      var el = document.getElementById('favDLC'+item.led);
+      if (el && item.hex) el.value = item.hex;
+    });
   }
 
-  function changeBrightState(components, valor) {
-    document.getElementById(components[0]).classList.remove('btn-success');
-    document.getElementById(components[1]).classList.remove('btn-success');
-    document.getElementById(components[2]).classList.remove('btn-success');
-    switch (valor) {
-      case '0': document.getElementById(components[1]).classList.add('btn-success'); break;
-      case '1': document.getElementById(components[0]).classList.add('btn-success'); break;
-      case '2': document.getElementById(components[2]).classList.add('btn-success'); break;
+  // Brightness
+  if (s.brightness) {
+    var bmap = { 'ON':'1', 'OFF':'0', 'AUTO':'2' };
+    if (s.brightness.clock)
+      changeBrightState(['idCBSOn','idCBSOff','idCBSAuto'], bmap[s.brightness.clock] || '2');
+    if (s.brightness.decoration)
+      changeBrightState(['idDBSOn','idDBSOff','idDBSAuto'], bmap[s.brightness.decoration] || '2');
+  }
+
+  // Rainbow
+  if (s.rainbow) {
+    var wrap = document.getElementById('rainbowSpeedWrap');
+    var btnOn  = document.getElementById('idRainbowOn');
+    var btnOff = document.getElementById('idRainbowOff');
+    btnOn.classList.remove('btn-success');
+    btnOff.classList.remove('btn-success');
+    if (s.rainbow.state === 'ON') {
+      btnOn.classList.add('btn-success');
+      wrap.style.display = 'flex';
+    } else {
+      btnOff.classList.add('btn-success');
+      wrap.style.display = 'none';
     }
+    if (s.rainbow.speed) document.getElementById('rainbowSpeed').value = s.rainbow.speed;
   }
 
-  function updateUi(dados) {
-    document.getElementById('idbsm').innerHTML = dados['Brightness_Sensor_map'];
-    document.getElementById('idTemp').innerHTML = dados['Temperature'];
-    document.getElementById('idTime').innerHTML = dados['Time'];
-    document.getElementById('txtTempUrl').value = dados['Url_Temperature'];
+  // Temperature URL
+  if (s.temperature_url) document.getElementById('txtTempUrl').value = s.temperature_url;
 
-    updateUiColor('clock_first_day_color',     dados['Clock_First_Day_Color']);
-    updateUiColor('clock_second_day_color',    dados['Clock_Second_Day_Color']);
-    updateUiColor('clock_first_month_color',   dados['Clock_First_Month_Color']);
-    updateUiColor('clock_secod_month_color',   dados['Clock_Secod_Month_Color']);
+  refreshDisplay();
+  selectDigit(currentDigit);
+}
 
-    updateUiColor('clock_first_hour_color',    dados['Clock_First_Hour_Color']);
-    updateUiColor('clock_second_hour_color',   dados['Clock_Second_Hour_Color']);
-    updateUiColor('clock_first_minute_color',  dados['Clock_First_Minute_Color']);
-    updateUiColor('clock_secod_minute_color',  dados['Clock_Secod_Minute_Color']);
+function getDefaultConfiguration(){
+  return {
+	  "display": {
+		"clock": {
+		  "digits": {
+			"d1": ["#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff"],
+			"d2": ["#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff"],
+			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			},		
+		},
+		"day": {
+		  "digits": {
+			"d1": ["#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00"],
+			"d2": ["#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00"],
+			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			},
+		},
+		"temp": {
+		  "digits": {
+			"d1": ["#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000"],
+			"d2": ["#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000"],
+			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			},		
+		},
+	  },
+	  "decoration":{
+		"l1": ["#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff",],
+		"l2": ["#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff",],
+	  },
+	  "brightness": {
+		"clock": "ON",
+		"decoration": "ON",
+	  },
+	  "rainbow": {
+		"state": "OFF",
+		"speed": 5
+	  },
+	  "temperature_url": "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0"
+	};
+}
 
-    updateUiColor('Temp_First_Value_Color',    dados['Temp_First_Value_Color']);
-    updateUiColor('Temp_Second_Value_Color',   dados['Temp_Second_Value_Color']);
-    updateUiColor('Temp_First_Symbol_Color',   dados['Temp_First_Symbol_Color']);
-    updateUiColor('Temp_Second_Symbol_Color',  dados['Temp_Second_Symbol_Color']);
 
-    var valor = dados['Clock_Brightness_Mode'][0];
-    changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], valor);
+// ─── STARTUP ──────────────────────────────────────────────────────────────────
+function startup() {
+  refreshDisplay();
+  selectDigit(1);
 
-    var valor = dados['Deco_Brightness_Mode'][0];
-    changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], valor);
+  // Brightness buttons — only update UI state
+  document.getElementById('idCBSOn').addEventListener('click', function() {
+    changeBrightState(['idCBSOn','idCBSOff','idCBSAuto'],'1');
+  });
+  document.getElementById('idCBSOff').addEventListener('click', function() {
+    changeBrightState(['idCBSOn','idCBSOff','idCBSAuto'],'0');
+  });
+  document.getElementById('idCBSAuto').addEventListener('click', function() {
+    changeBrightState(['idCBSOn','idCBSOff','idCBSAuto'],'2');
+  });
+  document.getElementById('idDBSOn').addEventListener('click', function() {
+    changeBrightState(['idDBSOn','idDBSOff','idDBSAuto'],'1');
+  });
+  document.getElementById('idDBSOff').addEventListener('click', function() {
+    changeBrightState(['idDBSOn','idDBSOff','idDBSAuto'],'0');
+  });
+  document.getElementById('idDBSAuto').addEventListener('click', function() {
+    changeBrightState(['idDBSOn','idDBSOff','idDBSAuto'],'2');
+  });
 
-    var dadosDeco = dados['Deco_Color'].replaceAll(' ', '').split('-');
-    for (var i = 0; i <= 13; i++) {
-      updateUiColor('favDLC' + (i + 1), dadosDeco[i]);
-    }
-  }
-
-  function startup() {
-    getinfo(updateUi);
-
-    // Day of month colors
-    document.querySelector('#clock_first_day_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '1'); }, false);
-    document.querySelector('#clock_second_day_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '2'); }, false);
-    document.querySelector('#clock_first_month_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '3'); }, false);
-    document.querySelector('#clock_secod_month_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setDayColor', '4'); }, false);
-
-    // Clock hour/minute colors
-    document.querySelector('#clock_first_hour_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '1'); }, false);
-    document.querySelector('#clock_second_hour_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '2'); }, false);
-    document.querySelector('#clock_first_minute_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '3'); }, false);
-    document.querySelector('#clock_secod_minute_color').addEventListener('change', function(e) { updateUiColorClock(e, 'setHourColor', '4'); }, false);
-
-    // Temperature colors
-    document.querySelector('#Temp_First_Value_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '1'); }, false);
-    document.querySelector('#Temp_Second_Value_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '2'); }, false);
-    document.querySelector('#Temp_First_Symbol_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '3'); }, false);
-    document.querySelector('#Temp_Second_Symbol_Color').addEventListener('change', function(e) { updateUiColorClock(e, 'setcolortemp', '4'); }, false);
-
-    // Decoration lights
-    document.querySelector('#favDLC1').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '1'); }, false);
-    document.querySelector('#favDLC2').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '2'); }, false);
-    document.querySelector('#favDLC3').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '3'); }, false);
-    document.querySelector('#favDLC4').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '4'); }, false);
-    document.querySelector('#favDLC5').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '5'); }, false);
-    document.querySelector('#favDLC6').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '6'); }, false);
-    document.querySelector('#favDLC7').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '7'); }, false);
-    document.querySelector('#favDLC8').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '8'); }, false);
-    document.querySelector('#favDLC9').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '9'); }, false);
-    document.querySelector('#favDLC10').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '10'); }, false);
-    document.querySelector('#favDLC11').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '11'); }, false);
-    document.querySelector('#favDLC12').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '12'); }, false);
-    document.querySelector('#favDLC13').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '13'); }, false);
-    document.querySelector('#favDLC14').addEventListener('change', function(e) { updateUiColorClock(e, 'setdecocolor', '14'); }, false);
-
-    // Clock brightness
-    document.querySelector('#idCBSOn').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setclockbrightnessstate', 'ON');
-      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '1');
-    }, false);
-    document.querySelector('#idCBSOff').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setclockbrightnessstate', 'OFF');
-      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '0');
-    }, false);
-    document.querySelector('#idCBSAuto').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setclockbrightnessstate', 'AUTO');
-      changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '2');
-    }, false);
-
-    // Decoration brightness
-    document.querySelector('#idDBSOn').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setdecobrightnessstate', 'ON');
-      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '1');
-    }, false);
-    document.querySelector('#idDBSOff').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setdecobrightnessstate', 'OFF');
-      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0');
-    }, false);
-    document.querySelector('#idDBSAuto').addEventListener('click', function(e) {
-      setBrightnessState(e, 'setdecobrightnessstate', 'AUTO');
-      changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2');
-    }, false);
-  }
+  // Load state from server
+  loadState();
+}
 </script>
 </body>
 </html>
