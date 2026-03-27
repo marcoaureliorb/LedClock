@@ -948,12 +948,12 @@ function applyState(s) {
   // Decoration LEDs
   if (s.decoration) {
     s.decoration.l1.forEach(function(item, index) {
-      var el = document.getElementById('favDLC'+index);
+      var el = document.getElementById('favDLC'+index+1);
       if (el && item) el.value = item;
     });
 	
     s.decoration.l2.forEach(function(item, index) {
-      var el = document.getElementById('favDLC'+ (index + 7));
+      var el = document.getElementById('favDLC'+ (index + 1 + 7));
       if (el && item) el.value = item;
     });	
   }
