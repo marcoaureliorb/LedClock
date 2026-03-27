@@ -935,7 +935,7 @@ function applyState(s) {
     MODES.forEach(m => {
       if (!s.display[m] || !s.display[m].digits) return;
       [1,2,3,4].forEach(d => {
-        var digData = s.display[m].digits[d];
+        var digData = s.display[m].digits[d-1];
         if (!digData) return;
         SEGS.forEach( (seg, i) => {
           var hex = digData.seg[i];
