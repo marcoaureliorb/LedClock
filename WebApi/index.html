@@ -938,8 +938,8 @@ function applyState(s) {
         var digData = s.display[m].digits[d];
         if (!digData) return;
         SEGS.forEach( (seg, i) => {
-          var hex = digData[seg.toUpperCase()];
-          if (hex) segColors[m][d][i] = hex;
+          var hex = digData[i];
+          if (hex) segColors[m][d][seg] = hex;
         });
       });
     });
