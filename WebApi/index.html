@@ -935,11 +935,11 @@ function applyState(s) {
     MODES.forEach(m => {
       if (!s.display[m] || !s.display[m].digits) return;
       [1,2,3,4].forEach(d => {
-        var digData = s.display[m].digits['D'+d];
+        var digData = s.display[m].digits[d];
         if (!digData) return;
-        SEGS.forEach(seg => {
+        SEGS.forEach( (seg, i) => {
           var hex = digData[seg.toUpperCase()];
-          if (hex) segColors[m][d][seg] = hex;
+          if (hex) segColors[m][d][i] = hex;
         });
       });
     });
@@ -947,10 +947,15 @@ function applyState(s) {
 
   // Decoration LEDs
   if (s.decoration) {
-    s.decoration.forEach(function(item) {
-      var el = document.getElementById('favDLC'+item.led);
-      if (el && item.hex) el.value = item.hex;
+    s.decoration.l1.forEach(function(item, index) {
+      var el = document.getElementById('favDLC'+index);
+      if (el && item) el.value = item;
     });
+	
+    s.decoration.l2.forEach(function(item, index) {
+      var el = document.getElementById('favDLC'+ (index + 7));
+      if (el && item) el.value = item;
+    });	
   }
 
   // Brightness
