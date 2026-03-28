@@ -208,7 +208,6 @@
     /* ALL SEGMENTS CONTROL */
     .all-seg-row {
       display: flex; align-items: center; gap: 14px;
-      margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
       flex-wrap: wrap;
     }
     .all-seg-row span { font-size: .65rem; color: var(--text-mid); letter-spacing: .1em; flex: 1; }
@@ -476,28 +475,6 @@
 
       <!-- SEGMENT COLOR CONTROLS -->
       <div class="seg-selector">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="seg-selector-title" style="margin-bottom:0;">
-            Segment colors — Digit <span id="activeDigitLabel">1</span>
-          </div>
-          <div class="digit-tabs">
-            <button class="digit-tab active" onclick="selectDigit(1)" id="dtab1">D1</button>
-            <button class="digit-tab" onclick="selectDigit(2)" id="dtab2">D2</button>
-            <button class="digit-tab" onclick="selectDigit(3)" id="dtab3">D3</button>
-            <button class="digit-tab" onclick="selectDigit(4)" id="dtab4">D4</button>
-          </div>
-        </div>
-
-        <div class="seg-grid">
-          <div class="seg-ctrl"><span>A (top)</span><input type="color" id="cp_a" value="#00d4ff" onchange="applySegColor('a',this.value)"></div>
-          <div class="seg-ctrl"><span>B (top-R)</span><input type="color" id="cp_b" value="#00d4ff" onchange="applySegColor('b',this.value)"></div>
-          <div class="seg-ctrl"><span>C (bot-R)</span><input type="color" id="cp_c" value="#00d4ff" onchange="applySegColor('c',this.value)"></div>
-          <div class="seg-ctrl"><span>D (bot)</span><input type="color" id="cp_d" value="#00d4ff" onchange="applySegColor('d',this.value)"></div>
-          <div class="seg-ctrl"><span>E (bot-L)</span><input type="color" id="cp_e" value="#00d4ff" onchange="applySegColor('e',this.value)"></div>
-          <div class="seg-ctrl"><span>F (top-L)</span><input type="color" id="cp_f" value="#00d4ff" onchange="applySegColor('f',this.value)"></div>
-          <div class="seg-ctrl"><span>G (mid)</span><input type="color" id="cp_g" value="#00d4ff" onchange="applySegColor('g',this.value)"></div>
-        </div>
-
         <div class="all-seg-row">
           <span>Apply same color to all 7 segments of this digit</span>
           <input type="color" id="cp_all" value="#00d4ff">
@@ -704,14 +681,12 @@ function refreshDisplay() {
 // ─── DIGIT SELECTION ──────────────────────────────────────────────────────────
 function selectDigit(d) {
   currentDigit = d;
-  [1,2,3,4].forEach(i => {
-    document.getElementById('dtab'+i).classList.toggle('active', i===d);
-  });
-  document.getElementById('activeDigitLabel').textContent = d;
+  //[1,2,3,4].forEach(i => {
+  //  document.getElementById('dtab'+i).classList.toggle('active', i===d);
+  //});
+  //document.getElementById('activeDigitLabel').textContent = d;
   // Update color pickers to match stored values
-  SEGS.forEach(s => {
-    document.getElementById('cp_'+s).value = segColors[currentMode][d][s];
-  });
+
   refreshDisplay();
 }
 
@@ -726,7 +701,6 @@ function applySegColor(seg, color) {
 function applyAllSegs(color) {
   SEGS.forEach(s => {
     segColors[currentMode][currentDigit][s] = color;
-    document.getElementById('cp_'+s).value = color;
     const el = document.getElementById('d'+currentDigit+'s'+s);
     el.style.background = color;
     el.style.color = color;
@@ -770,12 +744,12 @@ function buildPayload() {
 
   // Build per-mode digit colors (hex only)
   const displayModes = {};
-  MODES.forEach(m => {
-    displayModes[m] = { digits: {} };
-    [1,2,3,4].forEach(d => {
-      const segs = [];
-      SEGS.forEach((v,i) => { segs[i] = segColors[m][d][v]; });
-      displayModes[m].digits[d] = segs;
+  MODES.forEach(mode => {
+    displayModes[mode] = { digits: {} };
+    [1,2,3,4].forEach(digit => {
+      //const segs = [];
+      //SEGS.forEach((v,i) => { segs[i] = segColors[mode][digit][v]; });
+      displayModes[mode].digits[digit] =  segColors[mode][digit]["a"];
     });
   });
 
@@ -980,26 +954,26 @@ function getDefaultConfiguration(){
 	  "display": {
 		"clock": {
 		  "digits": {
-			"d1": ["#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff"],
-			"d2": ["#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff", "#0000ff"],
-			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
-			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d1": "#0000ff",
+			"d2": "#0000ff",
+			"d3": "#ffffff",
+			"d4": "#ffffff",
 			},		
 		},
 		"day": {
 		  "digits": {
-			"d1": ["#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00"],
-			"d2": ["#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00", "#00ff00"],
-			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
-			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d1": "#00ff00",
+			"d2": "#00ff00",
+			"d3": "#ffffff",
+			"d4": "#ffffff",
 			},
 		},
 		"temp": {
 		  "digits": {
-			"d1": ["#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000"],
-			"d2": ["#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000", "#ff0000"],
-			"d3": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
-			"d4": ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+			"d1": "#ff0000",
+			"d2": "#ff0000",
+			"d3": "#ffffff",
+			"d4": "#ffffff",
 			},		
 		},
 	  },
