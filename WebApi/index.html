@@ -896,7 +896,7 @@ function applyState(s) {
         var digData = s.display[m].digits[d-1];
         if (!digData) return;
         SEGS.forEach( (seg, i) => {
-          if (hex) segColors[m][d][seg] = digData;
+          segColors[m][d][seg] = digData;
         });
       });
     });
