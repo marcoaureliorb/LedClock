@@ -5,10 +5,18 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Adafruit_NeoPixel.h>
+#include <LittleFS.h>
 #include <ESP8266HTTPClient.h>
+
+#include "Utils.h"
+#include "secrets.h"  // add WLAN Credentials in here.
 
 // TRACE output simplified, can be deactivated here
 #define TRACE(...) Serial.printf(__VA_ARGS__)
+
+// Time zone
+const char * timeServer = "br.pool.ntp.org";
+int timeZone = -3 * 3600;
 
 // choose the brightness Clock Mode
 #define BRIGHT_OFF 0
@@ -16,6 +24,11 @@
 #define BRIGHT_AUTO 2
 #define BRIGHT_DEFAULT_VALUE 50
 
+int brightnessClockMode = BRIGHT_ON;
+int brightnessSensor = BRIGHT_DEFAULT_VALUE;
+int brightnessDecoMode = BRIGHT_ON;
+
+// Settings led strip
 // Which pin on the Arduino is connected to the NeoPixels?
 #define LEDCLOCK_PIN 14 // pin D5 sur esp8266/arduino nano
 #define LEDDECO_PIN  12 // pin D6 sur esp8266/arduino nano
@@ -23,23 +36,6 @@
 // How many NeoPixels are attached to the Arduino?
 #define LEDCLOCK_COUNT 252
 #define LEDDECO_COUNT 14
-
-struct RGB {
-  byte r;
-  byte g;
-  byte b;
-};
-
-const char *ssid = "Biscoitao2.4G";
-const char *passPhrase = "4luci184";
-
-// Time zone
-const char * timeServer = "br.pool.ntp.org";
-int timeZone = -3 * 3600;
-
-int brightnessClockMode = BRIGHT_ON;
-int brightnessSensor = BRIGHT_DEFAULT_VALUE;
-int brightnessDecoMode = BRIGHT_ON;
 
 // Declare our NeoPixel objects:
 Adafruit_NeoPixel stripClock(LEDCLOCK_COUNT, LEDCLOCK_PIN, NEO_RGB + NEO_KHZ800);
@@ -53,6 +49,7 @@ int readIndex = 0;         // the index of the current reading
 long total = 0;            // the running total
 long average = 0;          // the average
 
+// RGB variables for clock mode
 RGB dayColor[4];
 RGB clockColor[4];
 RGB tempColor[4];
@@ -64,14 +61,20 @@ int hour = 0;
 int minute = 0;
 int second = 0;
 
-// URL raw do HTML no GitHub (HTTPS)
-const char* HTML_URL = "https://raw.githubusercontent.com/marcoaureliorb/LedClock/refs/heads/main/WebApi/index.html";
-// Timeout para requisição HTTP ao GitHub (ms)
-const int   HTTP_TIMEOUT_MS = 8000;
-
 String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0";
 int temperature = -1;
 int timeToChangeMode = 0;
+
+// ── Rainbow config ──────────────────────────────────────────
+#define RAINBOW_MODE_OFF 0
+#define RAINBOW_MODE_ON 1
+
+int rainbowMode = 0;
+int rainbowOffset = 0;      // offset animado do arco-íris (0-255)
+
+// ── Temporização não-bloqueante ─────────────────────────────
+uint32_t lastSecondMs  = 0;   // última vez que 1 segundo passou
+uint32_t lastRainbowMs = 0;   // última atualização do rainbow
 
 // gestion des evenements du wifi
 void onConnected(const WiFiEventStationModeConnected& event);
@@ -86,62 +89,25 @@ NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed 
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
 
-String colorToStr(RGB color){
-  return String("(") + color.r + "," + color.g + "," + color.b + ")";
-}
+// Api
+void setRainbowModeApi();
 
-RGB getColor(String red, String green, String blue){
-
-  RGB color = (RGB){red.toInt(), green.toInt(), blue.toInt()};
-
-  return color;
-}
-
-RGB getColor(int red, int green, int blue){
-
-  RGB color = (RGB){red, green, blue};
-
-  return color;
-}
-
-RGB stringToRGB(String str){
-  int color[3];
-  int StringCount = 0;
-
-  while (str.length() > 0)
-  {
-    int index = str.indexOf(",");
-    if (index == -1) // No space found
-    {
-      color[StringCount++] = str.toInt();
-      break;
-    }
-    else
-    {
-      color[StringCount++] = str.substring(0, index).toInt();
-      str = str.substring(index+1);
-    }
-  }
-
-  return RGB{color[0], color[1], color[2]};  
-}
-
-void printRGB(String texto, RGB color){
-  Serial.print(texto);
-  Serial.print(color.r);
-  Serial.print(", ");
-  Serial.print(color.g);
-  Serial.print(", ");
-  Serial.println(color.b);
+String getContentType(String filename) {
+  if (filename.endsWith(".html")) return "text/html";
+  if (filename.endsWith(".css")) return "text/css";
+  if (filename.endsWith(".js")) return "application/javascript";
+  return "text/plain";
 }
 
 void setup() {
-   delay(3000);  // wait for serial monitor to start completely.
+   
+   // wait for serial monitor to start completely.
+   delay(3000);
    
    Serial.begin(115200);
    Serial.setDebugOutput(false);
    
-   Serial.println("HELLO !");
+   TRACE("HELLO !\n");
 
    WiFi.mode(WIFI_STA);
    WiFi.begin(ssid, passPhrase);
@@ -153,22 +119,60 @@ void setup() {
    // Wait for connection
    while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    TRACE(".");
    }
 
-   serverWeb.on("/", HTTP_GET, handleRoot);
-   serverWeb.on("/getinfo", getInfoApi);
-   serverWeb.on("/gettime", getTimeApi);
-   serverWeb.on("/gettemperature", getTemperatureApi);
-   serverWeb.on("/gettemperatureurl", getTemperatureUrlApi);  
-   serverWeb.on("/setHourColor", setHourColorApi);  
-   serverWeb.on("/setcolortemp", setTempColorApi);
-   serverWeb.on("/setclockbrightnessstate", setClockBrightnessState);
-   serverWeb.on("/setdecobrightnessstate", setDecoBrightnessState);
-   serverWeb.on("/setdecocolor", setDecoColorApi);
-   serverWeb.on("/setHourMinuteToShow", sethourminutetoshow);
-   serverWeb.on("/showTemperature", showTemperature);
+   LittleFS.begin();
+
+   Dir dir = LittleFS.openDir("/");
+   TRACE("List of file in directory data\n");
+   while (dir.next()) {
+      TRACE("File: %s | Size: %d\n", dir.fileName(), dir.fileSize());
+   }
+
+serverWeb.on("/", HTTP_GET, []() {
+
+  if (LittleFS.exists("/index.html")) {
+    File file = LittleFS.open("/index.html", "r");
+
+    TRACE("Tamanho do arquivo index.html %d. Tamanho Original: %d", file.size(), 16712);
+    serverWeb.streamFile(file, "text/html");
+
+    file.close();
+  } else {
+    serverWeb.send(404, "text/plain", "index nao encontrado");
+  }
+});
+
+serverWeb.on("/style.css", HTTP_GET, []() {
+  File file = LittleFS.open("/style.css", "r");
+  serverWeb.streamFile(file, "text/css");
+  file.close();
+});
+
+serverWeb.on("/app.js", HTTP_GET, []() {
+  File file = LittleFS.open("/app.js", "r");
+  serverWeb.streamFile(file, "application/javascript");
+  file.close();
+});
+
+
+   serverWeb.on("/getInfo", getInfoApi);
+   serverWeb.on("/getTime", getTimeApi);
+   serverWeb.on("/getTemperature", getTemperatureApi);
    
+   serverWeb.on("/setHourColor", setHourColorApi);
+   serverWeb.on("/setDayColor", setDayColorApi);   
+   serverWeb.on("/setTempColor", setTempColorApi);
+   serverWeb.on("/setDecoColor", setDecoColorApi);
+   serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
+   
+   serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
+   serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
+
+   serverWeb.on("/setNightTime", setNightTimeApi);
+   serverWeb.on("/setRainbowMode", setRainbowModeApi);
+
    // enable CORS header in webserver results
    serverWeb.enableCORS(true);
   
@@ -214,100 +218,89 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.isConnected())
-  {
-    serverWeb.handleClient();
+  
+  if (!WiFi.isConnected()) {
+    TRACE("waiting for wifi ...\n");
+    delay(1000);
+    return;
+  }	
 
-    timeToChangeMode++;    
+  serverWeb.handleClient();
+  
+  uint32_t now = millis();
 
-    if(timeToChangeMode == 1){
-        readTheTime();
-        displayTheTime();
+  // ── Lógica de 1 segundo ─────────────────────────────────────
+  if (now - lastSecondMs >= 1000) {
+    lastSecondMs = now;
+
+    timeToChangeMode++;
+
+    if (timeToChangeMode == 1) {
+      readTheTime();
+      displayTheTime();
     }
 
-    if(timeToChangeMode == 50)
-    {
+    if (timeToChangeMode == 50) {
       displayTheDay();
-    }    
+    }
 
-    if(timeToChangeMode == 55)
-    {
+    if (timeToChangeMode == 55) {
       readTheTemperature();
       displayTheTemperature();
     }
 
-    if(timeToChangeMode >= 60){
+    if (timeToChangeMode >= 60) {
       timeToChangeMode = 0;
     }
 
-    switch (brightnessDecoMode)
-    {
-      case BRIGHT_OFF:
-        stripDeco.setBrightness(0);
-        Serial.println("LED DECO OFF");
-        break;
-      case BRIGHT_ON:
-        stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
-        Serial.println("LED DECO ON");
-        break;    
-      case BRIGHT_AUTO:
-        readThebrightnessValue();
-        stripDeco.setBrightness(brightnessSensor);
-        Serial.println("LED DECO AUTO ON");
-        break;
+    // Brilho
+    switch (brightnessDecoMode) {
+      case BRIGHT_OFF:  stripDeco.setBrightness(0); break;
+      case BRIGHT_ON:   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE); break;
+      case BRIGHT_AUTO: readThebrightnessValue(); stripDeco.setBrightness(brightnessSensor); break;
+    }
+    switch (brightnessClockMode) {
+      case BRIGHT_OFF:  stripClock.setBrightness(0); break;
+      case BRIGHT_ON:   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE); break;
+      case BRIGHT_AUTO: readThebrightnessValue(); stripClock.setBrightness(brightnessSensor); break;
     }
 
-    switch (brightnessClockMode)
-    {
-      case BRIGHT_OFF:
-        stripClock.setBrightness(0);
-        Serial.println("LED CLOCK OFF");
-        break;
-      case BRIGHT_ON:
-        stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
-        Serial.println("LED CLOCK ON");
-        break;     
-      case BRIGHT_AUTO:
-        readThebrightnessValue();
-        stripClock.setBrightness(brightnessSensor);
-        Serial.println("LED CLOCK AUTO ON");
-        break;
-    }
+    // Deco LEDs
+   for(int i=0; i<LEDDECO_COUNT; i++) {
+       stripDeco.setPixelColor(i, colorToInt(clockDecoColor[i]));
+   }    
 
-    for(int i=0; i<LEDDECO_COUNT; i++) {
-      RGB cor = clockDecoColor[i];
-      stripDeco.setPixelColor(i, stripDeco.Color(cor.g, cor.r, cor.b));
-    }
-
+    // Modo noturno — força apagado
     int hourInt = hour * 100 + minute;
-    if( hourInt > startHourToShow && hourInt < endHourToShow){
+    if (hourInt >= startHourToShow && hourInt <= endHourToShow) {
       stripDeco.setBrightness(0);
       stripClock.setBrightness(0);
-      Serial.println("Clock bright automatic to off. ");
     }
 
-    stripDeco.show(); 
-    stripClock.show();
-  }
-  else
-  {
-    Serial.println("waiting for wifi ...");
+    stripDeco.show();
+
+    // Se rainbow está desligado, mostra o clock aqui (1x/s, igual ao comportamento original)
+    if (rainbowMode == RAINBOW_MODE_OFF) {
+      stripClock.show();
+    }
   }
 
-  delay(1000);
-  Serial.println("");
+  // ── Animação rainbow: atualiza ~50x por segundo ─────────────
+  if (rainbowMode == RAINBOW_MODE_ON && (now - lastRainbowMs >= 20)) {
+    lastRainbowMs = now;
+    rainbowOffset += rainbowOffset;   // estoura de 255→0 naturalmente
+    applyRainbow();
+    stripClock.show();
+  }
 }
 
 void readThebrightnessValue(){
     //Record a reading from the light sensor and add it to the array
     int valueReadFromSensor = analogRead(A0);
     
-    Serial.print("Light sensor value = ");
-    Serial.println(valueReadFromSensor);
+    TRACE("Light sensor value = %03d\n", valueReadFromSensor);
 
     readings[readIndex] = valueReadFromSensor;
-    Serial.print("Light sensor value added to array = ");
-    Serial.println(readings[readIndex]);
     readIndex = readIndex + 1; // advance to the next position in the array:
 
     if (readIndex >= numReadings) {
@@ -320,107 +313,24 @@ void readThebrightnessValue(){
           sumBrightness += readings[i];
     }
     
-    Serial.print("Sum of the brightness array = ");
-    Serial.println(sumBrightness);
-  
     // and calculate the average: 
     int lightSensorValue = sumBrightness / numReadings;
-    Serial.print("Average light sensor value = ");
-    Serial.println(lightSensorValue);
-
     brightnessSensor = map(lightSensorValue, 0, 1023, 200, 1); 
 
-    Serial.print("Mapped brightness value = ");
-    Serial.println(brightnessSensor);
+    TRACE("Mapped brightness value = %04d\n", brightnessSensor);
 }
 
 void onConnected(const WiFiEventStationModeConnected& event)
 {
-  Serial.println("");
-  Serial.println("Wifi connected!");
-  Serial.println("");
+  TRACE("Wifi connected!\n");
 }
 
 void onGotIP(const WiFiEventStationModeGotIP& event)
 {
-  Serial.println("");
-  Serial.println("IP : " + WiFi.localIP().toString());
-  Serial.println("Gateway: " + WiFi.gatewayIP().toString());
-  Serial.print("RSSI : ");
-  Serial.println(WiFi.RSSI());
-  Serial.println("");
+  TRACE("IP : %s | Gateway: %s | RSSI : %d\n", WiFi.localIP().toString().c_str(), WiFi.gatewayIP().toString().c_str(), WiFi.RSSI());
 }
 
-void handleRoot() {
-  
-  Serial.println("[HTTP] Requisição recebida em /");
-  Serial.println("[HTTP] Buscando HTML do GitHub...");
-
-  // ESP8266 — usa BearSSL para HTTPS
-  WiFiClientSecure tlsClient;
-  tlsClient.setInsecure();          // Aceita qualquer certificado (sem validação de CA)
-                                    // Para produção use tlsClient.setFingerprint() ou setTrustAnchors()
-  HTTPClient http;
-  http.setTimeout(HTTP_TIMEOUT_MS);
-  http.begin(tlsClient, HTML_URL);
-
-  int httpCode = http.GET();
-  Serial.printf("[HTTP] Resposta GitHub: %d\n", httpCode);
-
-  if (httpCode == HTTP_CODE_OK) {
-    // Faz streaming do payload diretamente para o cliente Wi-Fi,
-    // sem alocar o HTML inteiro na RAM de uma só vez.
-    WiFiClient* stream = http.getStreamPtr();
-    int totalLen       = http.getSize();   // -1 se chunked
-    int bytesSent      = 0;
-
-    // Inicia a resposta HTTP com cabeçalhos
-    serverWeb.setContentLength(totalLen > 0 ? totalLen : CONTENT_LENGTH_UNKNOWN);
-    serverWeb.send(200, "text/html", "");
-
-    // Buffer de streaming — 512 bytes é seguro para ESP8266 (pouca RAM)
-    const size_t BUF_SIZE = 512;
-    uint8_t buf[BUF_SIZE];
-
-    uint32_t deadline = millis() + HTTP_TIMEOUT_MS;
-
-    while (http.connected() && millis() < deadline) {
-      size_t available = stream->available();
-      if (available == 0) {
-        delay(1);
-        continue;
-      }
-      size_t toRead = (available > BUF_SIZE) ? BUF_SIZE : available;
-      size_t read   = stream->readBytes(buf, toRead);
-      if (read > 0) {
-        serverWeb.client().write(buf, read);
-        bytesSent += read;
-        deadline   = millis() + HTTP_TIMEOUT_MS; // reseta timeout a cada chunk
-      }
-    }
-
-    Serial.printf("[HTTP] Streaming concluído: %d bytes enviados.\n", bytesSent);
-
-  } else {
-    // GitHub não respondeu OK — devolve página de erro simples
-    String errorMsg =
-      "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
-      "<title>Erro</title></head><body style='font-family:monospace;"
-      "background:#07080d;color:#ff4444;padding:40px'>"
-      "<h2>Erro ao carregar interface</h2>"
-      "<p>Nao foi possivel buscar o HTML do GitHub.</p>"
-      "<p>Codigo HTTP: <b>" + String(httpCode) + "</b></p>"
-       "<p><a href='/' style='color:#00c8ff'>Tentar novamente</a></p>"
-      "</body></html>";
-
-    serverWeb.send(502, "text/html", errorMsg);
-    Serial.printf("[HTTP] Falha! Código: %d\n", httpCode);
-  }
-
-  http.end();
-}
-
-void setClockBrightnessState(){
+void setClockBrightnessStateApi(){
 
   String response;
   String contentType = "application/json";
@@ -441,7 +351,44 @@ void setClockBrightnessState(){
   response = String("{\"Status\": \"") + "State clock bright changed to " + brightnessModeToStr(brightnessClockMode) + "\"}";
 
   serverWeb.send(200, contentType , response);
-  Serial.println(response);      
+  TRACE("%s\n", response.c_str());      
+}
+
+
+// ── Rainbow helpers ──────────────────────────────────────────
+
+/**
+ * Roda de cores: converte posição 0-255 no espectro RGB completo.
+ */
+RGB wheelColor(uint8_t pos) {
+  pos = 255 - pos;
+  if (pos < 85) {
+    return (RGB){ (uint8_t)(255 - pos * 3), 0, (uint8_t)(pos * 3) };
+  } else if (pos < 170) {
+    pos -= 85;
+    return (RGB){ 0, (uint8_t)(pos * 3), (uint8_t)(255 - pos * 3) };
+  } else {
+    pos -= 170;
+    return (RGB){ (uint8_t)(pos * 3), (uint8_t)(255 - pos * 3), 0 };
+  }
+}
+
+/**
+ * Percorre todos os LEDs da fita do relógio.
+ * Para cada LED que está ACESO (cor != 0, ou seja pertence a um
+ * segmento ativo), substitui a cor pela cor arco-íris calculada
+ * a partir da posição do LED + rainbowOffset.
+ * LEDs APAGADOS (segmentos inativos) permanecem pretos, preservando
+ * a forma dos dígitos.
+ */
+void applyRainbow() {
+  for (int i = 0; i < LEDCLOCK_COUNT; i++) {
+    if (stripClock.getPixelColor(i) != 0) {
+      uint8_t hue = (uint8_t)((i * 255 / LEDCLOCK_COUNT) + rainbowOffset);
+      RGB c = wheelColor(hue);
+      stripClock.setPixelColor(i, stripClock.Color(c.g, c.r, c.b));
+    }
+  }
 }
 
 void getTimeApi(){
@@ -451,7 +398,7 @@ void getTimeApi(){
   response = String("{ \"Time\" : \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response);
 }
 
 void getTemperatureApi(){
@@ -461,7 +408,7 @@ void getTemperatureApi(){
   response = String("{ \"Temperature\" : \"") + String(temperature) + " ºC\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
 void getTemperatureUrlApi(){
@@ -471,27 +418,49 @@ void getTemperatureUrlApi(){
   response = String("{ \"Url Temperature\" : \"") + urlTemp + "\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
-void showTemperature(){
-  String response;
-  String contentType = "application/json";
-  response = String("{ \"ShowTemperature\" : \"") + "OK" + "\"}";
-  serverWeb.send(200, contentType , response); 
-  Serial.println(response); 
+int convertToHHMM(String timeStr) {
+  int separator = timeStr.indexOf(':');
+
+  int hour = timeStr.substring(0, separator).toInt();
+  int minute = timeStr.substring(separator + 1).toInt();
+
+  return hour * 100 + minute;
 }
 
-void sethourminutetoshow(){
+void setNightTimeApi(){
   String response;
   String contentType = "application/json";
   
-  startHourToShow = serverWeb.arg(0).toInt() * 100 + serverWeb.arg(1).toInt();
-  endHourToShow = serverWeb.arg(2).toInt() * 100 + serverWeb.arg(3).toInt();
+  if (!serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
+    serverWeb.send(400, "text/plain", "Parametros s e e são obrigatórios");
+    return;
+  }
   
-  response = String("{ \"Status\" : \"") + "Hour and minute to show led changed between " + startHourToShow + " and " + endHourToShow + "\"}";
+  String startTime = serverWeb.arg("s"); // exemplo: "00:00"
+  String endTime   = serverWeb.arg("e"); // exemplo: "05:30"
+
+  startHourToShow = convertToHHMM(startTime);
+  endHourToShow = convertToHHMM(endTime);
+  
+  response = String("{ \"Status\" : \"") + "NightTime change to " + startTime + " and " + endTime + "\"}";
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
+}
+
+void setRainbowModeApi(){
+  String response;
+  String contentType = "application/json";
+  
+  rainbowMode = serverWeb.arg(0) == "ON"? RAINBOW_MODE_ON : RAINBOW_MODE_OFF;
+
+  response = String("{ \"Rainbow state\" : \"") + rainbowModeToStr(rainbowMode) + "\"}";
+
+  serverWeb.send(200, contentType , response);
+
+  TRACE("%s\n", response.c_str());
 }
 
 void setHourColorApi(){
@@ -506,7 +475,7 @@ void setHourColorApi(){
   response = String("{ \"Status\" : \"") + "Hour color changed to " + colorToStr(clockColor[i-1]) + " on pos " + i + "\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
 void setDayColorApi(){
@@ -517,11 +486,13 @@ void setDayColorApi(){
   String r = serverWeb.arg(1);
   String g = serverWeb.arg(2);
   String b = serverWeb.arg(3);
+  
   dayColor[i-1] = getColor(r,g,b);
+  
   response = String("{ \"Status\" : \"") + "Day color changed to " + colorToStr(dayColor[i-1]) + " on pos " + i + "\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
 void setTempColorApi(){
@@ -537,7 +508,7 @@ void setTempColorApi(){
   response = String("{\"Status\" : \"") + "Temperature color changed to " + colorToStr(tempColor[i-1]) + "\"}";
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
 void setDecoColorApi(){
@@ -552,7 +523,43 @@ void setDecoColorApi(){
   response = String("{\"Status\" : \"") + "Decoration color " + (i) + " changed to " + colorToStr(clockDecoColor[i]) + "\"}";  
   
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
+}
+
+void setDecoColorAllApi(){
+  const char* contentType = "application/json";
+  
+   // Validação básica dos parâmetros
+  if (serverWeb.args() < 4) {
+    serverWeb.send(400, contentType, "{\"error\":\"Missing parameters\"}");
+    return;
+  }
+
+  int line = serverWeb.arg(0).toInt();
+  int r = serverWeb.arg(1).toInt();
+  int g = serverWeb.arg(2).toInt();
+  int b = serverWeb.arg(3).toInt();
+  
+  // Define faixa de LEDs
+  int idxStart = (line - 1) * 7;
+  int idxEnd   = idxStart + 7;
+
+  RGB color = getColor(r,g,b);
+
+  // Atualiza LEDs
+  for (int i = idxStart; i < idxEnd; i++) {
+    clockDecoColor[i] = color;
+  }  
+  
+  // Monta resposta sem usar muitas Strings
+  char response[120];
+  snprintf(response, sizeof(response),
+           "{\"status\":\"Decoration color line %d changed to %s\"}",
+           line,
+           colorToStr(color).c_str());
+
+  serverWeb.send(200, contentType, response);
+  TRACE("%s\n", response);
 }
 
 void getInfoApi(){
@@ -562,62 +569,65 @@ void getInfoApi(){
     
   serverWeb.send(200, contentType , response);
   
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
 String getConfigClock(){
   
-    String sensorLightValues = "";
+  String sensorLightValues = "";
 
-    for (int i=0; i < numReadings; i++){
-      sensorLightValues += String(readings[i]) + " - ";
-    }
+  for (int i=0; i < numReadings; i++){
+    sensorLightValues += String(readings[i]) + " - ";
+  }
 
   String clockDecoColorStr = "";
   for (int i=0; i < LEDDECO_COUNT; i++)
   {
-  clockDecoColorStr += colorToStr(clockDecoColor[i]) + " - ";
+    clockDecoColorStr += colorToStr(clockDecoColor[i]) + " - ";
   }
-    
-    return String("{") + 
-           
-           String("\"Time\": \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"," + 
-           
-           String("\"Clock_First_Day_Color\": \"#") + colorToStr(dayColor[0]) + "\"," + 
-           String("\"Clock_Second_Day_Color\": \"#") + colorToStr(dayColor[1]) + "\"," +   
-           String("\"Clock_First_Month_Color\": \"#") + colorToStr(dayColor[2]) + "\"," + 
-           String("\"Clock_Secod_Month_Color\": \"#") + colorToStr(dayColor[3]) + "\"," + 
 
-           String("\"Clock_First_Hour_Color\": \"#") + colorToStr(clockColor[0]) + "\"," + 
-           String("\"Clock_Second_Hour_Color\": \"#") + colorToStr(clockColor[1]) + "\"," +   
-           String("\"Clock_First_Minute_Color\": \"#") + colorToStr(clockColor[2]) + "\"," + 
-           String("\"Clock_Secod_Minute_Color\": \"#") + colorToStr(clockColor[3]) + "\"," + 
-           
-           String("\"Clock_Brightness_Mode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," + 
-           String("\"Brightness_Sensor_Values\": \"") + sensorLightValues + "\"," + 
-           String("\"Brightness_Sensor_map\": ") + brightnessSensor + "," + 
-                 
-           String("\"Temperature\": \"") + String(temperature) + " ºC" + "\"," + 
-           String("\"Url_Temperature\": \"") + urlTemp + "\"," + 
-           
-           String("\"Temp_First_Value_Color\": \"#") + colorToStr(tempColor[0]) + "\"," + 
-           String("\"Temp_Second_Value_Color\": \"#") + colorToStr(tempColor[1]) + "\"," + 
-           String("\"Temp_First_Symbol_Color\": \"#") + colorToStr(tempColor[2]) + "\"," + 
-           String("\"Temp_Second_Symbol_Color\": \"#") + colorToStr(tempColor[3]) + "\"," +
-           
-           String("\"Deco_Color\": \"") + clockDecoColorStr + "\"," + 
-           String("\"Deco_Brightness_Mode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
-           
-           String("\"Hour_and_minute_to_show\": \"") + String(startHourToShow) + " and " + String(endHourToShow) + "\"" + 
-           "}";  
+  // Time formatado (2 dígitos)
+  char timeStr[9];
+  sprintf(timeStr, "%02d:%02d:%02d", hour, minute, second);
+
+   // Night mode (2 dígitos)
+  char startStr[3];
+  char endStr[3];
+
+  sprintf(startStr, "%02d", startHourToShow);
+  sprintf(endStr, "%02d", endHourToShow);
+    
+  return String("{") + 
+         String("\"time\": \"") + timeStr + "\"," + 
+         String("\"clockFirstDayColor\": \"#") + colorToStr(dayColor[0]) + "\"," + 
+         String("\"clockSecondDayColor\": \"#") + colorToStr(dayColor[1]) + "\"," +   
+         String("\"clockFirstMonthColor\": \"#") + colorToStr(dayColor[2]) + "\"," + 
+         String("\"clockSecodMonthColor\": \"#") + colorToStr(dayColor[3]) + "\"," + 
+         String("\"clockFirstHourColor\": \"#") + colorToStr(clockColor[0]) + "\"," + 
+         String("\"clockSecondHourColor\": \"#") + colorToStr(clockColor[1]) + "\"," +   
+         String("\"clockFirstMinuteColor\": \"#") + colorToStr(clockColor[2]) + "\"," + 
+         String("\"clockSecodMinuteColor\": \"#") + colorToStr(clockColor[3]) + "\"," + 
+         String("\"tempFirstValueColor\": \"#") + colorToStr(tempColor[0]) + "\"," + 
+         String("\"tempSecondValueColor\": \"#") + colorToStr(tempColor[1]) + "\"," + 
+         String("\"tempFirstSymbolColor\": \"#") + colorToStr(tempColor[2]) + "\"," + 
+         String("\"tempSecondSymbolColor\": \"#") + colorToStr(tempColor[3]) + "\"," +
+         String("\"decoColor\": \"") + clockDecoColorStr + "\"," + 		 
+   	     String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," + 		 
+         String("\"decoBrightnessMode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
+         String("\"brightnessSensorMap\": ") + brightnessSensor + "," + 
+         String("\"rainbowMode\": \"") + rainbowModeToStr(rainbowMode) + "\"," + 		 
+         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," + 
+         String("\"urlTemperature\": \"") + urlTemp + "\"," + 
+         String("\"nightModeStart\": \"") + startStr + "\"," +
+         String("\"nightModeEnd\": \"") + endStr + "\"" +
+         String("}");
 }
 
-void setDecoBrightnessState()
-{
+void setDecoBrightnessStateApi(){
   String response;
   String contentType = "application/json";
   
-  String state = String(serverWeb.arg(1));
+  String state = String(serverWeb.arg(0));
   state.toUpperCase();
 
   if (state == "OFF"){
@@ -633,11 +643,10 @@ void setDecoBrightnessState()
   response = String("{\"Status\" : \"") + "State decoration bright changed to " + brightnessModeToStr(brightnessDecoMode) + "\"}";
 
   serverWeb.send(200, contentType , response);
-  Serial.println(response);
+  TRACE("%s\n", response.c_str());
 }
 
-void readTheTime()
-{
+void readTheTime(){
   timeClient.update();
 
   hour = timeClient.getHours();
@@ -654,33 +663,23 @@ void readTheTime()
   month = ptm->tm_mon + 1;
 
   // Exibe no Serial
-  Serial.printf("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);  
-
-  Serial.print("Time is: ");   
-  Serial.print(hour);
-  Serial.print(":");
-  Serial.print(minute);
-  Serial.print(":");
-  Serial.println(second);
+  TRACE("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);  
 }
+
 void displayTheDay(){
   stripClock.clear(); //clear the clock face 
  
   int firstDigit = month % 10; //work out the value of the first digit and then display it
   displayNumber(firstDigit, 0, colorToInt(dayColor[3]));
-  printRGB("Color second month: ", dayColor[3]);  
 
   int secondDigit = floor(month / 10); //work out the value for the second digit and then display it
   displayNumber(secondDigit, 63, colorToInt(dayColor[2]));  
-  printRGB("Color first month: ", dayColor[2]);  
 
   int thirdDigit = day % 10; //work out the value for the third digit and then display it
   displayNumber(thirdDigit, 126, colorToInt(dayColor[1]));
-  printRGB("Color second day: ", dayColor[1]);
 
   int fourthDigit = floor(day/ 10); //work out the value for the fourth digit and then display it
   displayNumber(fourthDigit, 189, colorToInt(dayColor[0]));
-  printRGB("Color first day: ", dayColor[0]);  
 }
 
 void displayTheTime(){
@@ -688,26 +687,20 @@ void displayTheTime(){
  
   int firstminuteDigit = minute % 10; //work out the value of the first digit and then display it
   displayNumber(firstminuteDigit, 0, colorToInt(clockColor[3]));
-  printRGB("Color second minute: ", clockColor[3]);  
 
   int secondminuteDigit = floor(minute / 10); //work out the value for the second digit and then display it
   displayNumber(secondminuteDigit, 63, colorToInt(clockColor[2]));  
-  printRGB("Color first minute: ", clockColor[2]);  
 
   int firstHourDigit = hour % 10; //work out the value for the third digit and then display it
   displayNumber(firstHourDigit, 126, colorToInt(clockColor[1]));
-  printRGB("Color second hour: ", clockColor[1]);
 
   int secondHourDigit = floor(hour/ 10); //work out the value for the fourth digit and then display it
   displayNumber(secondHourDigit, 189, colorToInt(clockColor[0]));
-  printRGB("Color first hour: ", clockColor[0]);  
 }
 
 void readTheTemperature(){
     WiFiClient client;
     HTTPClient http;
-
-    Serial.println("Reading the temperature");
 
     bool lerTemperatura = temperature == -1 || minute % 59 == 0;
 
@@ -715,47 +708,36 @@ void readTheTemperature(){
         return;
     }
 
-    Serial.println("[HTTP] begin...\n");
     temperature = 0;
     
     if (http.begin(client, urlTemp)) {
 
-      Serial.print("[HTTP] GET...\n");
       // start connection and send HTTP header
       int httpCode = http.GET();
 
       // httpCode will be negative on error
       if (httpCode > 0) {
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
         // file found at server
         if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
           String payload = http.getString();
           JSONVar myObject = JSON.parse(payload);
-          Serial.println(payload);
           
           // JSON.typeof(jsonVar) can be used to get the type of the var
           if (JSON.typeof(myObject) == "undefined") {
-            Serial.println("Parsing input failed!");
             return;
           }
 
-          Serial.print("JSON object = ");
-          Serial.println(myObject);
           JSONVar keys = myObject.keys();
           temperature = (int)myObject["temp"];
-          Serial.print(keys[0]);
-          Serial.print(" = ");
-          Serial.println(temperature);
+          TRACE("Temperature value read: %03d\n", temperature);
         }
       } else {
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        TRACE("Error reading temperature\n");
       }
 
       http.end();
     } else {
-      Serial.printf("[HTTP} Unable to connect\n");
+      TRACE("[HTTP} Unable to connect to read temperature\n");
     }
 }
 
@@ -763,22 +745,29 @@ void displayTheTemperature(){
   stripClock.clear(); //clear the clock face 
 
   letterC(0, colorToInt(tempColor[3]));
-  printRGB("Color letter: ", tempColor[3]);
 
   symbolDegrees(63, colorToInt(tempColor[2]));  
-  printRGB("Color symbol: ", tempColor[2]);
   
   int firstTempDigit = temperature % 10; //work out the value for the third digit and then display it
   displayNumber(firstTempDigit, 126, colorToInt(tempColor[1]));
-  printRGB("Color second digit: ", tempColor[1]);
 
   int secondTempDigit = floor(temperature/ 10); //work out the value for the fourth digit and then display it
   displayNumber(secondTempDigit, 189, colorToInt(tempColor[0]));
-  printRGB("Color first digit: ", tempColor[0]);
 }
 
 uint32_t colorToInt(RGB color){
   return stripClock.Color(color.g, color.r, color.b);
+}
+
+String rainbowModeToStr(int mode){
+  switch(mode){
+    case 0:
+      return "0 - off";
+    case 1:
+      return "1 - on";
+  }
+
+  return "invalid";
 }
 
 String brightnessModeToStr(int mode){
