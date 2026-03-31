@@ -89,30 +89,20 @@ NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed 
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
 
-// Api
-void setRainbowModeApi();
-
-String getContentType(String filename) {
-  if (filename.endsWith(".html")) return "text/html";
-  if (filename.endsWith(".css")) return "text/css";
-  if (filename.endsWith(".js")) return "application/javascript";
-  return "text/plain";
-}
-
 void setup() {
-   
+
    // wait for serial monitor to start completely.
    delay(3000);
-   
+
    Serial.begin(115200);
    Serial.setDebugOutput(false);
-   
+
    TRACE("HELLO !\n");
 
    WiFi.mode(WIFI_STA);
    WiFi.begin(ssid, passPhrase);
    WiFi.hostname("WIFI-Clock");
-   
+
    static WiFiEventHandler onConnectedHandler = WiFi.onStationModeConnected(onConnected);
    static WiFiEventHandler onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
 
@@ -130,103 +120,100 @@ void setup() {
       TRACE("File: %s | Size: %d\n", dir.fileName(), dir.fileSize());
    }
 
-serverWeb.on("/", HTTP_GET, []() {
+   serverWeb.on("/", HTTP_GET, []() {
+       if (LittleFS.exists("/index.html")) {
+           File file = LittleFS.open("/index.html", "r");
+           TRACE("Tamanho do arquivo index.html %d. Tamanho Original: %d", file.size(), 16712);
+           serverWeb.streamFile(file, "text/html");
+           file.close();
+       } else {
+           serverWeb.send(404, "text/plain", "index nao encontrado");
+       }
+    });
 
-  if (LittleFS.exists("/index.html")) {
-    File file = LittleFS.open("/index.html", "r");
-
-    TRACE("Tamanho do arquivo index.html %d. Tamanho Original: %d", file.size(), 16712);
-    serverWeb.streamFile(file, "text/html");
-
-    file.close();
-  } else {
-    serverWeb.send(404, "text/plain", "index nao encontrado");
-  }
-});
-
-serverWeb.on("/style.css", HTTP_GET, []() {
-  File file = LittleFS.open("/style.css", "r");
-  serverWeb.streamFile(file, "text/css");
-  file.close();
-});
-
-serverWeb.on("/app.js", HTTP_GET, []() {
-  File file = LittleFS.open("/app.js", "r");
-  serverWeb.streamFile(file, "application/javascript");
-  file.close();
-});
+    serverWeb.on("/style.css", HTTP_GET, []() {
+        File file = LittleFS.open("/style.css", "r");
+        serverWeb.streamFile(file, "text/css");
+        file.close();
+    });
+    
+    serverWeb.on("/app.js", HTTP_GET, []() {
+        File file = LittleFS.open("/app.js", "r");
+        serverWeb.streamFile(file, "application/javascript");
+        file.close();
+    });
 
 
-   serverWeb.on("/getInfo", getInfoApi);
-   serverWeb.on("/getTime", getTimeApi);
-   serverWeb.on("/getTemperature", getTemperatureApi);
-   
-   serverWeb.on("/setHourColor", setHourColorApi);
-   serverWeb.on("/setDayColor", setDayColorApi);   
-   serverWeb.on("/setTempColor", setTempColorApi);
-   serverWeb.on("/setDecoColor", setDecoColorApi);
-   serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
-   
-   serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
-   serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
-
-   serverWeb.on("/setNightTime", setNightTimeApi);
-   serverWeb.on("/setRainbowMode", setRainbowModeApi);
-
-   // enable CORS header in webserver results
-   serverWeb.enableCORS(true);
-  
-   serverWeb.begin();
-
-   timeClient.begin();
-  
-   stripClock.begin();
-   stripClock.show();
-   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
- 
-   stripDeco.begin();
-   stripDeco.show();
-   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
-
-   //smoothing
-   // initialize all the readings to 0:
-   for (int thisReading = 0; thisReading < numReadings; thisReading++) 
-   {
-     readings[thisReading] = 0;
-   }
-   
-   for(int i=0; i<LEDDECO_COUNT; i++) {
-       clockDecoColor[i] = (RGB){ 255 , 255 , 255 };
-   }
-
-   dayColor[0] = (RGB){ 0 , 255 , 0 };
-   dayColor[1] = (RGB){ 0 , 255 , 0 };
-   dayColor[2] = (RGB){ 255 , 255 , 255 };
-   dayColor[3] = (RGB){ 255 , 255 , 255 }; 
-
-   clockColor[0] = (RGB){ 0 , 0 , 255 };
-   clockColor[1] = (RGB){ 0 , 0 , 255 };
-   clockColor[2] = (RGB){ 255 , 255 , 255 };
-   clockColor[3] = (RGB){ 255 , 255 , 255 }; 
-
-   tempColor[0] = (RGB){ 255 , 0 , 0 };
-   tempColor[1] = (RGB){ 255 , 0 , 0 };
-   tempColor[2] = (RGB){ 255 , 255 , 255 };
-   tempColor[3] = (RGB){ 255 , 255 , 255 };
-
-   timeToChangeMode = 0;
+    serverWeb.on("/getInfo", getInfoApi);
+    serverWeb.on("/getTime", getTimeApi);
+    serverWeb.on("/getTemperature", getTemperatureApi);
+    
+    serverWeb.on("/setHourColor", setHourColorApi);
+    serverWeb.on("/setDayColor", setDayColorApi);
+    serverWeb.on("/setTempColor", setTempColorApi);
+    serverWeb.on("/setDecoColor", setDecoColorApi);
+    serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
+    
+    serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
+    serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
+    
+    serverWeb.on("/setNightTime", setNightTimeApi);
+    serverWeb.on("/setRainbowMode", setRainbowModeApi);
+    
+    // enable CORS header in webserver results
+    serverWeb.enableCORS(true);
+    
+    serverWeb.begin();
+    
+    timeClient.begin();
+    
+    stripClock.begin();
+    stripClock.show();
+    stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
+    
+    stripDeco.begin();
+    stripDeco.show();
+    stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
+    
+    //smoothing
+    // initialize all the readings to 0:
+    for (int thisReading = 0; thisReading < numReadings; thisReading++)
+    {
+      readings[thisReading] = 0;
+    }
+    
+    for(int i=0; i<LEDDECO_COUNT; i++) {
+        clockDecoColor[i] = (RGB){ 255 , 255 , 255 };
+    }
+    
+    dayColor[0] = (RGB){ 0 , 255 , 0 };
+    dayColor[1] = (RGB){ 0 , 255 , 0 };
+    dayColor[2] = (RGB){ 255 , 255 , 255 };
+    dayColor[3] = (RGB){ 255 , 255 , 255 };
+    
+    clockColor[0] = (RGB){ 0 , 0 , 255 };
+    clockColor[1] = (RGB){ 0 , 0 , 255 };
+    clockColor[2] = (RGB){ 255 , 255 , 255 };
+    clockColor[3] = (RGB){ 255 , 255 , 255 };
+    
+    tempColor[0] = (RGB){ 255 , 0 , 0 };
+    tempColor[1] = (RGB){ 255 , 0 , 0 };
+    tempColor[2] = (RGB){ 255 , 255 , 255 };
+    tempColor[3] = (RGB){ 255 , 255 , 255 };
+    
+    timeToChangeMode = 0;
 }
 
 void loop() {
-  
+
   if (!WiFi.isConnected()) {
     TRACE("waiting for wifi ...\n");
     delay(1000);
     return;
-  }	
+  }
 
   serverWeb.handleClient();
-  
+
   uint32_t now = millis();
 
   // ── Lógica de 1 segundo ─────────────────────────────────────
@@ -268,7 +255,7 @@ void loop() {
     // Deco LEDs
    for(int i=0; i<LEDDECO_COUNT; i++) {
        stripDeco.setPixelColor(i, colorToInt(clockDecoColor[i]));
-   }    
+   }
 
     // Modo noturno — força apagado
     int hourInt = hour * 100 + minute;
@@ -297,7 +284,7 @@ void loop() {
 void readThebrightnessValue(){
     //Record a reading from the light sensor and add it to the array
     int valueReadFromSensor = analogRead(A0);
-    
+
     TRACE("Light sensor value = %03d\n", valueReadFromSensor);
 
     readings[readIndex] = valueReadFromSensor;
@@ -306,54 +293,51 @@ void readThebrightnessValue(){
     if (readIndex >= numReadings) {
       readIndex = 0;
     }
-  
+
     //now work out the sum of all the values in the array
     int sumBrightness = 0;
     for (int i=0; i < numReadings; i++) {
           sumBrightness += readings[i];
     }
-    
-    // and calculate the average: 
+
+    // and calculate the average:
     int lightSensorValue = sumBrightness / numReadings;
-    brightnessSensor = map(lightSensorValue, 0, 1023, 200, 1); 
+    brightnessSensor = map(lightSensorValue, 0, 1023, 200, 1);
 
     TRACE("Mapped brightness value = %04d\n", brightnessSensor);
 }
 
-void onConnected(const WiFiEventStationModeConnected& event)
-{
-  TRACE("Wifi connected!\n");
+void onConnected(const WiFiEventStationModeConnected& event){
+    TRACE("Wifi connected!\n");
 }
 
-void onGotIP(const WiFiEventStationModeGotIP& event)
-{
-  TRACE("IP : %s | Gateway: %s | RSSI : %d\n", WiFi.localIP().toString().c_str(), WiFi.gatewayIP().toString().c_str(), WiFi.RSSI());
+void onGotIP(const WiFiEventStationModeGotIP& event){
+    TRACE("IP : %s | Gateway: %s | RSSI : %d\n", WiFi.localIP().toString().c_str(), WiFi.gatewayIP().toString().c_str(), WiFi.RSSI());
 }
 
 void setClockBrightnessStateApi(){
 
-  String response;
-  String contentType = "application/json";
-
-  String state = String(serverWeb.arg(0));
-  state.toUpperCase();
-
-  if(state == "OFF"){
-    brightnessClockMode = BRIGHT_OFF;
-  }
-  else if(state == "ON"){
-    brightnessClockMode = BRIGHT_ON;
-  }
-  else{
-    brightnessClockMode = BRIGHT_AUTO;
-  }
-
-  response = String("{\"Status\": \"") + "State clock bright changed to " + brightnessModeToStr(brightnessClockMode) + "\"}";
-
-  serverWeb.send(200, contentType , response);
-  TRACE("%s\n", response.c_str());      
+    String response;
+    String contentType = "application/json";
+    
+    String state = String(serverWeb.arg(0));
+    state.toUpperCase();
+    
+    if(state == "OFF"){
+        brightnessClockMode = BRIGHT_OFF;
+    }
+    else if(state == "ON"){
+        brightnessClockMode = BRIGHT_ON;
+    }
+    else{
+        brightnessClockMode = BRIGHT_AUTO;
+    }
+    
+    response = String("{\"Status\": \"") + "State clock bright changed to " + brightnessModeToStr(brightnessClockMode) + "\"}";
+    
+    serverWeb.send(200, contentType , response);
+    TRACE("%s\n", response.c_str());
 }
-
 
 // ── Rainbow helpers ──────────────────────────────────────────
 
@@ -394,9 +378,9 @@ void applyRainbow() {
 void getTimeApi(){
   String response;
   String contentType = "application/json";
-  
+
   response = String("{ \"Time\" : \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response);
 }
@@ -404,9 +388,9 @@ void getTimeApi(){
 void getTemperatureApi(){
   String response;
   String contentType = "application/json";
-  
+
   response = String("{ \"Temperature\" : \"") + String(temperature) + " ºC\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
@@ -414,9 +398,9 @@ void getTemperatureApi(){
 void getTemperatureUrlApi(){
   String response;
   String contentType = "application/json";
-  
+
   response = String("{ \"Url Temperature\" : \"") + urlTemp + "\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
@@ -433,18 +417,18 @@ int convertToHHMM(String timeStr) {
 void setNightTimeApi(){
   String response;
   String contentType = "application/json";
-  
+
   if (!serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
     serverWeb.send(400, "text/plain", "Parametros s e e são obrigatórios");
     return;
   }
-  
+
   String startTime = serverWeb.arg("s"); // exemplo: "00:00"
   String endTime   = serverWeb.arg("e"); // exemplo: "05:30"
 
   startHourToShow = convertToHHMM(startTime);
   endHourToShow = convertToHHMM(endTime);
-  
+
   response = String("{ \"Status\" : \"") + "NightTime change to " + startTime + " and " + endTime + "\"}";
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
@@ -453,7 +437,7 @@ void setNightTimeApi(){
 void setRainbowModeApi(){
   String response;
   String contentType = "application/json";
-  
+
   rainbowMode = serverWeb.arg(0) == "ON"? RAINBOW_MODE_ON : RAINBOW_MODE_OFF;
 
   response = String("{ \"Rainbow state\" : \"") + rainbowModeToStr(rainbowMode) + "\"}";
@@ -466,14 +450,14 @@ void setRainbowModeApi(){
 void setHourColorApi(){
   String response;
   String contentType = "application/json";
-  
+
   int i = serverWeb.arg(0).toInt();
   String r = serverWeb.arg(1);
   String g = serverWeb.arg(2);
   String b = serverWeb.arg(3);
   clockColor[i-1] = getColor(r,g,b);
   response = String("{ \"Status\" : \"") + "Hour color changed to " + colorToStr(clockColor[i-1]) + " on pos " + i + "\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
@@ -481,16 +465,16 @@ void setHourColorApi(){
 void setDayColorApi(){
   String response;
   String contentType = "application/json";
-  
+
   int i = serverWeb.arg(0).toInt();
   String r = serverWeb.arg(1);
   String g = serverWeb.arg(2);
   String b = serverWeb.arg(3);
-  
+
   dayColor[i-1] = getColor(r,g,b);
-  
+
   response = String("{ \"Status\" : \"") + "Day color changed to " + colorToStr(dayColor[i-1]) + " on pos " + i + "\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
@@ -498,15 +482,15 @@ void setDayColorApi(){
 void setTempColorApi(){
   String response;
   String contentType = "application/json";
-  
+
   int i = serverWeb.arg(0).toInt();
   String r = serverWeb.arg(1);
   String g = serverWeb.arg(2);
   String b = serverWeb.arg(3);
-  
-  tempColor[i-1] = getColor(r,g,b);            
+
+  tempColor[i-1] = getColor(r,g,b);
   response = String("{\"Status\" : \"") + "Temperature color changed to " + colorToStr(tempColor[i-1]) + "\"}";
-  
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
@@ -515,20 +499,20 @@ void setDecoColorApi(){
   String response;
   String contentType = "application/json";
 
-  int i = serverWeb.arg(0).toInt();      
+  int i = serverWeb.arg(0).toInt();
   String r = serverWeb.arg(1);
   String g = serverWeb.arg(2);
   String b = serverWeb.arg(3);
-  clockDecoColor[i - 1] = getColor(r,g,b);             
-  response = String("{\"Status\" : \"") + "Decoration color " + (i) + " changed to " + colorToStr(clockDecoColor[i]) + "\"}";  
-  
+  clockDecoColor[i - 1] = getColor(r,g,b);
+  response = String("{\"Status\" : \"") + "Decoration color " + (i) + " changed to " + colorToStr(clockDecoColor[i]) + "\"}";
+
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
 
 void setDecoColorAllApi(){
   const char* contentType = "application/json";
-  
+
    // Validação básica dos parâmetros
   if (serverWeb.args() < 4) {
     serverWeb.send(400, contentType, "{\"error\":\"Missing parameters\"}");
@@ -539,7 +523,7 @@ void setDecoColorAllApi(){
   int r = serverWeb.arg(1).toInt();
   int g = serverWeb.arg(2).toInt();
   int b = serverWeb.arg(3).toInt();
-  
+
   // Define faixa de LEDs
   int idxStart = (line - 1) * 7;
   int idxEnd   = idxStart + 7;
@@ -549,8 +533,8 @@ void setDecoColorAllApi(){
   // Atualiza LEDs
   for (int i = idxStart; i < idxEnd; i++) {
     clockDecoColor[i] = color;
-  }  
-  
+  }
+
   // Monta resposta sem usar muitas Strings
   char response[120];
   snprintf(response, sizeof(response),
@@ -564,16 +548,16 @@ void setDecoColorAllApi(){
 
 void getInfoApi(){
   String contentType = "application/json";
-  
+
   String response = getConfigClock();
-    
+
   serverWeb.send(200, contentType , response);
-  
+
   TRACE("%s\n", response.c_str());
 }
 
 String getConfigClock(){
-  
+
   String sensorLightValues = "";
 
   for (int i=0; i < numReadings; i++){
@@ -596,28 +580,28 @@ String getConfigClock(){
 
   sprintf(startStr, "%02d", startHourToShow);
   sprintf(endStr, "%02d", endHourToShow);
-    
-  return String("{") + 
-         String("\"time\": \"") + timeStr + "\"," + 
-         String("\"clockFirstDayColor\": \"#") + colorToStr(dayColor[0]) + "\"," + 
-         String("\"clockSecondDayColor\": \"#") + colorToStr(dayColor[1]) + "\"," +   
-         String("\"clockFirstMonthColor\": \"#") + colorToStr(dayColor[2]) + "\"," + 
-         String("\"clockSecodMonthColor\": \"#") + colorToStr(dayColor[3]) + "\"," + 
-         String("\"clockFirstHourColor\": \"#") + colorToStr(clockColor[0]) + "\"," + 
-         String("\"clockSecondHourColor\": \"#") + colorToStr(clockColor[1]) + "\"," +   
-         String("\"clockFirstMinuteColor\": \"#") + colorToStr(clockColor[2]) + "\"," + 
-         String("\"clockSecodMinuteColor\": \"#") + colorToStr(clockColor[3]) + "\"," + 
-         String("\"tempFirstValueColor\": \"#") + colorToStr(tempColor[0]) + "\"," + 
-         String("\"tempSecondValueColor\": \"#") + colorToStr(tempColor[1]) + "\"," + 
-         String("\"tempFirstSymbolColor\": \"#") + colorToStr(tempColor[2]) + "\"," + 
+
+  return String("{") +
+         String("\"time\": \"") + timeStr + "\"," +
+         String("\"clockFirstDayColor\": \"#") + colorToStr(dayColor[0]) + "\"," +
+         String("\"clockSecondDayColor\": \"#") + colorToStr(dayColor[1]) + "\"," +
+         String("\"clockFirstMonthColor\": \"#") + colorToStr(dayColor[2]) + "\"," +
+         String("\"clockSecodMonthColor\": \"#") + colorToStr(dayColor[3]) + "\"," +
+         String("\"clockFirstHourColor\": \"#") + colorToStr(clockColor[0]) + "\"," +
+         String("\"clockSecondHourColor\": \"#") + colorToStr(clockColor[1]) + "\"," +
+         String("\"clockFirstMinuteColor\": \"#") + colorToStr(clockColor[2]) + "\"," +
+         String("\"clockSecodMinuteColor\": \"#") + colorToStr(clockColor[3]) + "\"," +
+         String("\"tempFirstValueColor\": \"#") + colorToStr(tempColor[0]) + "\"," +
+         String("\"tempSecondValueColor\": \"#") + colorToStr(tempColor[1]) + "\"," +
+         String("\"tempFirstSymbolColor\": \"#") + colorToStr(tempColor[2]) + "\"," +
          String("\"tempSecondSymbolColor\": \"#") + colorToStr(tempColor[3]) + "\"," +
-         String("\"decoColor\": \"") + clockDecoColorStr + "\"," + 		 
-   	     String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," + 		 
+         String("\"decoColor\": \"") + clockDecoColorStr + "\"," +
+            String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," +
          String("\"decoBrightnessMode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
-         String("\"brightnessSensorMap\": ") + brightnessSensor + "," + 
-         String("\"rainbowMode\": \"") + rainbowModeToStr(rainbowMode) + "\"," + 		 
-         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," + 
-         String("\"urlTemperature\": \"") + urlTemp + "\"," + 
+         String("\"brightnessSensorMap\": ") + brightnessSensor + "," +
+         String("\"rainbowMode\": \"") + rainbowModeToStr(rainbowMode) + "\"," +
+         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," +
+         String("\"urlTemperature\": \"") + urlTemp + "\"," +
          String("\"nightModeStart\": \"") + startStr + "\"," +
          String("\"nightModeEnd\": \"") + endStr + "\"" +
          String("}");
@@ -626,20 +610,20 @@ String getConfigClock(){
 void setDecoBrightnessStateApi(){
   String response;
   String contentType = "application/json";
-  
+
   String state = String(serverWeb.arg(0));
   state.toUpperCase();
 
   if (state == "OFF"){
     brightnessDecoMode = BRIGHT_OFF;
-  }          
+  }
   else if(state == "ON"){
     brightnessDecoMode = BRIGHT_ON;
   }
   else{
     brightnessDecoMode = BRIGHT_AUTO;
   }
-  
+
   response = String("{\"Status\" : \"") + "State decoration bright changed to " + brightnessModeToStr(brightnessDecoMode) + "\"}";
 
   serverWeb.send(200, contentType , response);
@@ -663,17 +647,17 @@ void readTheTime(){
   month = ptm->tm_mon + 1;
 
   // Exibe no Serial
-  TRACE("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);  
+  TRACE("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);
 }
 
 void displayTheDay(){
-  stripClock.clear(); //clear the clock face 
- 
+  stripClock.clear(); //clear the clock face
+
   int firstDigit = month % 10; //work out the value of the first digit and then display it
   displayNumber(firstDigit, 0, colorToInt(dayColor[3]));
 
   int secondDigit = floor(month / 10); //work out the value for the second digit and then display it
-  displayNumber(secondDigit, 63, colorToInt(dayColor[2]));  
+  displayNumber(secondDigit, 63, colorToInt(dayColor[2]));
 
   int thirdDigit = day % 10; //work out the value for the third digit and then display it
   displayNumber(thirdDigit, 126, colorToInt(dayColor[1]));
@@ -683,13 +667,13 @@ void displayTheDay(){
 }
 
 void displayTheTime(){
-  stripClock.clear(); //clear the clock face 
- 
+  stripClock.clear(); //clear the clock face
+
   int firstminuteDigit = minute % 10; //work out the value of the first digit and then display it
   displayNumber(firstminuteDigit, 0, colorToInt(clockColor[3]));
 
   int secondminuteDigit = floor(minute / 10); //work out the value for the second digit and then display it
-  displayNumber(secondminuteDigit, 63, colorToInt(clockColor[2]));  
+  displayNumber(secondminuteDigit, 63, colorToInt(clockColor[2]));
 
   int firstHourDigit = hour % 10; //work out the value for the third digit and then display it
   displayNumber(firstHourDigit, 126, colorToInt(clockColor[1]));
@@ -709,7 +693,7 @@ void readTheTemperature(){
     }
 
     temperature = 0;
-    
+
     if (http.begin(client, urlTemp)) {
 
       // start connection and send HTTP header
@@ -721,7 +705,7 @@ void readTheTemperature(){
         if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
           String payload = http.getString();
           JSONVar myObject = JSON.parse(payload);
-          
+
           // JSON.typeof(jsonVar) can be used to get the type of the var
           if (JSON.typeof(myObject) == "undefined") {
             return;
@@ -742,12 +726,12 @@ void readTheTemperature(){
 }
 
 void displayTheTemperature(){
-  stripClock.clear(); //clear the clock face 
+  stripClock.clear(); //clear the clock face
 
   letterC(0, colorToInt(tempColor[3]));
 
-  symbolDegrees(63, colorToInt(tempColor[2]));  
-  
+  symbolDegrees(63, colorToInt(tempColor[2]));
+
   int firstTempDigit = temperature % 10; //work out the value for the third digit and then display it
   displayNumber(firstTempDigit, 126, colorToInt(tempColor[1]));
 
