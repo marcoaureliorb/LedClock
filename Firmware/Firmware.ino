@@ -273,9 +273,9 @@ void loop() {
   }
 
   // ── Animação rainbow: atualiza ~50x por segundo ─────────────
-  if (rainbowMode == RAINBOW_MODE_ON && (now - lastRainbowMs >= 20)) {
+  if (rainbowMode == RAINBOW_MODE_ON && (now - lastRainbowMs >= 10)) {
     lastRainbowMs = now;
-    rainbowOffset += rainbowOffset;   // estoura de 255→0 naturalmente
+    rainbowOffset += 1;   // estoura de 255→0 naturalmente
     applyRainbow();
     stripClock.show();
   }
