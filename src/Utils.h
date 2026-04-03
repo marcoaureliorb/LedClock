@@ -4,20 +4,25 @@ struct RGB {
   byte b;
 };
 
+struct Digits {
+  uint8_t tens;
+  uint8_t units;
+};
+
 String colorToStr(RGB color){
   return String("(") + color.r + "," + color.g + "," + color.b + ")";
 }
 
 RGB getColor(String red, String green, String blue){
 
-  RGB color = (RGB){red.toInt(), green.toInt(), blue.toInt()};
+  RGB color = (RGB){(byte)red.toInt(), (byte)green.toInt(), (byte)blue.toInt()};
 
   return color;
 }
 
 RGB getColor(int red, int green, int blue){
 
-  RGB color = (RGB){red, green, blue};
+  RGB color = (RGB){(byte)red, (byte)green, (byte)blue};
 
   return color;
 }
@@ -41,7 +46,7 @@ RGB stringToRGB(String str){
     }
   }
 
-  return RGB{color[0], color[1], color[2]};  
+  return RGB{(byte)color[0], (byte)color[1], (byte)color[2]};  
 }
 
 void printRGB(String texto, RGB color){

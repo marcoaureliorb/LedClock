@@ -104,21 +104,27 @@ function loadData() {
 function loadDataMock() {
 	var d = {
 		brightnessSensorMap: '142',
-		temperature:         '28.5',
+		temperature:         '28.5°C',
+		humidity:            '75%',
 		time:                '14:35',
-		urlTemperature:      'http://hgbrasil.com/status/weather.ashx?woeid=BRXX0551&format=json-cors',
-		clockFirstHourColor:   '(58,132,57)',
-		clockSecondHourColor:  '(58,132,57)',
+		date:                '01/04/2026', 
+		urlTemperature:      'http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name&key=3b983af0',
+		clockFirstHourColor:   '(58,132,0)',
+		clockSecondHourColor:  '(58,132,0)',
 		clockFirstMinuteColor: '(221,0,0)',
 		clockSecodMinuteColor: '(221,0,0)',
-		clockFirstDayColor:    '(58,132,57)',
-		clockSecondDayColor:   '(58,132,57)',
-		clockFirstMonthColor:  '(221,0,0)',
-		clockSecodMonthColor:  '(221,0,0)',
-		tempFirstValueColor:   '(255,255,255)',
-		tempSecondValueColor:  '(255,255,255)',
-		tempFirstSymbolColor:  '(0,0,255)',
-		tempSecondSymbolColor: '(0,0,255)',
+		clockFirstDayColor:    '(58,0,57)',
+		clockSecondDayColor:   '(58,0,57)',
+		clockFirstMonthColor:  '(221,255,0)',
+		clockSecodMonthColor:  '(221,255,0)',
+		tempFirstValueColor:   '(0, 132,57)',
+		tempSecondValueColor:  '(0,132,57)',
+		tempFirstSymbolColor:  '(221,0,255)',
+		tempSecondSymbolColor: '(221,0,255)',
+		humidityFirstSymbolColor:  '(0,0,57)',
+		humiditySecondSymbolColor: '(0,0,57)',		
+		humidityFirstValueColor:   '(221,0,125)',
+		humiditySecondValueColor:  '(221,125,0)',		
 		clockBrightnessMode: '1',
 		decoBrightnessMode:  '2',
 		rainbowMode:         '0',
@@ -181,7 +187,9 @@ function changeRainbowState(ids, valor) {
 function updateUi(d) {
 	document.getElementById('brightnessSensorMap').innerHTML = d['brightnessSensorMap'];
 	document.getElementById('temperature').innerHTML         = d['temperature'];
+	document.getElementById('humidity').innerHTML            = d['humidity'];	
 	document.getElementById('time').innerHTML                = d['time'];
+	document.getElementById('date').innerHTML                = d['date'];
 	document.getElementById('urlTemperature').value          = d['urlTemperature'];
 
 	updateUiColor('clockFirstHourColor',    d['clockFirstHourColor']);
@@ -198,6 +206,11 @@ function updateUi(d) {
 	updateUiColor('tempSecondValueColor',   d['tempSecondValueColor']);
 	updateUiColor('tempFirstSymbolColor',   d['tempFirstSymbolColor']);
 	updateUiColor('tempSecondSymbolColor',  d['tempSecondSymbolColor']);
+
+	updateUiColor('humidityFirstValueColor',    d['humidityFirstValueColor']);
+	updateUiColor('humiditySecondValueColor',   d['humiditySecondValueColor']);
+	updateUiColor('humidityFirstSymbolColor',   d['humidityFirstSymbolColor']);
+	updateUiColor('humiditySecondSymbolColor',  d['humiditySecondSymbolColor']);
 
 	changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], d['clockBrightnessMode'][0]);
 	changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], d['decoBrightnessMode'][0]);
@@ -255,7 +268,7 @@ function bindEvents() {
 	// Rainbow
 	document.querySelector('#idRSOn') .addEventListener('click', function (e) { setRainbowState(e, 'ON');  changeRainbowState(['idRSOn', 'idRSOff'], '1'); });
 	document.querySelector('#idRSOff').addEventListener('click', function (e) { setRainbowState(e, 'OFF'); changeRainbowState(['idRSOn', 'idRSOff'], '0'); });
-
+	
 	// Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });
 }

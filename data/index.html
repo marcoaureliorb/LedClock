@@ -55,25 +55,32 @@
 
     <!-- ── Status ──────────────────────────────────────────── -->
     <div class="row g-3 mb-4">
-        <div class="col-4">
+        <div class="col-12 col-md-3">
             <div class="stat-card h-100">
                 <div class="stat-icon"><i class="bi bi-clock"></i></div>
                 <div class="stat-value" id="time">--:--</div>
-                <div class="stat-label">Current Time</div>
+                <div class="stat-label">Time</div>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-12 col-md-3">
+            <div class="stat-card h-100">
+                <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+                <div class="stat-value" id="date">--/--/--</div>
+                <div class="stat-label">Date</div>
+            </div>
+        </div>	
+        <div class="col-12 col-md-3">
             <div class="stat-card h-100">
                 <div class="stat-icon text-warning"><i class="bi bi-thermometer-half"></i></div>
                 <div class="stat-value" id="temperature">--</div>
                 <div class="stat-label">Temperature</div>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-12 col-md-3">
             <div class="stat-card h-100">
-                <div class="stat-icon text-info"><i class="bi bi-brightness-high"></i></div>
-                <div class="stat-value" id="brightnessSensorMap">---</div>
-                <div class="stat-label">Light Sensor</div>
+                <div class="stat-icon text-info"><i class="bi bi-moisture"></i></div>
+                <div class="stat-value" id="humidity">---</div>
+                <div class="stat-label">Humidity</div>
             </div>
         </div>
     </div>
@@ -82,10 +89,10 @@
     <div class="row g-3 mb-3">
 
         <!-- Clock colors -->
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-palette me-2"></i>Clock Colors</h6>
+                    <h6><i class="bi bi-clock me-2"></i>Clock Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -120,10 +127,10 @@
         </div>
 
         <!-- Day / Month colors -->
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-calendar3 me-2"></i>Day / Month Colors</h6>
+                    <h6><i class="bi bi-calendar3 me-2"></i>Date Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -157,45 +164,83 @@
             </div>
         </div>
 
-    </div><!-- /row -->
-
-    <!-- ── Temperature colors ──────────────────────────────── -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <h6><i class="bi bi-thermometer me-2 text-warning"></i>Temperature Colors</h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-sm-6">
-                    <p class="form-label mb-2">Value Digits</p>
-                    <div class="d-flex gap-3">
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="tempFirstValueColor" value="#ffffff">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="tempSecondValueColor" value="#ffffff">
-                        </div>
-                    </div>
+        <!-- Temperature / Symbol colors -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6><i class="bi bi-thermometer me-2 text-warning"></i>Temperature Colors</h6>
                 </div>
-                <div class="col-sm-6">
-                    <p class="form-label mb-2">Symbol (°C)</p>
-                    <div class="d-flex gap-3">
+                <div class="card-body d-flex flex-column gap-3">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="color-row-label">Value</span>
                         <div class="swatch-group">
                             <label>Digit 1</label>
-                            <input type="color" id="tempFirstSymbolColor" value="#0000ff">
+                            <input type="color" id="tempFirstValueColor" value="#3A8439">
                         </div>
                         <div class="swatch-group">
                             <label>Digit 2</label>
-                            <input type="color" id="tempSecondSymbolColor" value="#0000ff">
+                            <input type="color" id="tempSecondValueColor" value="#3A8439">
                         </div>
                     </div>
+
+                    <hr class="section-divider my-0">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="color-row-label">Symbol</span>
+                        <div class="swatch-group">
+                            <label>Digit 1</label>
+                            <input type="color" id="tempFirstSymbolColor" value="#dd0000">
+                        </div>
+                        <div class="swatch-group">
+                            <label>Digit 2</label>
+                            <input type="color" id="tempSecondSymbolColor" value="#dd0000">
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
-    </div>
 
+        <!-- Symbol colors / Humidity -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6><i class="bi bi-moisture me-2 text-success"></i>Humidity Colors</h6>
+                </div>
+                <div class="card-body d-flex flex-column gap-3">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="color-row-label">Symbol</span>
+                        <div class="swatch-group">
+                            <label>Digit 1</label>
+                            <input type="color" id="humidityFirstSymbolColor" value="#3A8439">
+                        </div>
+                        <div class="swatch-group">
+                            <label>Digit 2</label>
+                            <input type="color" id="humiditySecondSymbolColor" value="#3A8439">
+                        </div>
+                    </div>
+
+                    <hr class="section-divider my-0">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="color-row-label">Value</span>
+                        <div class="swatch-group">
+                            <label>Digit 1</label>
+                            <input type="color" id="humidityFirstValueColor" value="#dd0000">
+                        </div>
+                        <div class="swatch-group">
+                            <label>Digit 2</label>
+                            <input type="color" id="humiditySecondValueColor" value="#dd0000">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>        
+    </div><!-- /row -->
+	
     <!-- ── Decoration lights ───────────────────────────────── -->
     <div class="card mb-3">
         <div class="card-header">
@@ -245,12 +290,12 @@
 
         </div>
     </div>
-
+	
     <!-- ── Brightness + Rainbow ────────────────────────────── -->
     <div class="row g-3 mb-3">
 
         <!-- Brightness -->
-        <div class="col-lg-8">
+        <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h6><i class="bi bi-sun me-2 text-warning"></i>Brightness State</h6>
@@ -258,10 +303,19 @@
                 <div class="card-body d-flex flex-column gap-3">
 
                     <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <span class="color-row-label">Sensor map</span>
+                        <div class="btn-group" role="group" aria-label="Clock brightness">
+                                <i class="bi bi-brightness-high"></i><label id="brightnessSensorMap"></label>
+                        </div>
+                    </div>
+
+                    <hr class="section-divider my-0">
+
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
                         <span class="color-row-label">Clock</span>
                         <div class="btn-group" role="group" aria-label="Clock brightness">
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSOff">
-                                <i class="bi bi-power me-1"></i>OFF
+                                <i class="bi bi-lightbulb-off me-1"></i>OFF
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSOn">
                                 <i class="bi bi-lightbulb me-1"></i>ON
@@ -278,7 +332,7 @@
                         <span class="color-row-label">Deco</span>
                         <div class="btn-group" role="group" aria-label="Decoration brightness">
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSOff">
-                                <i class="bi bi-power me-1"></i>OFF
+                                <i class="bi bi-lightbulb-off me-1"></i>OFF
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSOn">
                                 <i class="bi bi-lightbulb me-1"></i>ON
@@ -293,50 +347,58 @@
             </div>
         </div>
 
-        <!-- Rainbow -->
         <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-rainbow me-2"></i>Rainbow Mode</h6>
+                    <h6><i class="bi bi-stars me-2"></i>Efects Mode</h6>
                 </div>
-                <div class="card-body d-flex align-items-center">
-                    <div class="btn-group" role="group" aria-label="Rainbow mode">
-                        <button type="button" class="btn btn-outline-secondary btn-state" id="idRSOff">
-                            <i class="bi bi-power me-1"></i>OFF
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-state" id="idRSOn">
-                            <i class="bi bi-stars me-1"></i>ON
-                        </button>
+                <div class="card-body d-flex flex-column gap-3">
+
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <span class="color-row-label">Rainbow</span>
+                        <div class="btn-group" role="group" aria-label="Decoration brightness">
+                            <button type="button" class="btn btn-outline-secondary btn-state" id="idRSOff">
+                                <i class="bi bi-lightbulb-off me-1"></i>OFF
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-state" id="idRSOn">
+                                <i class="bi bi-lightbulb me-1"></i>ON
+                            </button>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
+		
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6><i class="bi bi-stars me-2"></i>Night Mode</h6>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-sm-4">
+                            <label class="form-label" for="nightModeStart">Start Time</label>
+                            <input type="time" class="form-control" id="nightModeStart" value="00:00">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label" for="nightModeEnd">End Time</label>
+                            <input type="time" class="form-control" id="nightModeEnd" value="05:30">
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="button" id="setNightTime" class="btn btn-primary w-100 btn-state">
+                                <i class="bi bi-check-lg me-1"></i>Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>                
+
+
+            </div>
+        </div>        
 
     </div><!-- /row -->
-
-    <!-- ── Night mode ──────────────────────────────────────── -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <h6><i class="bi bi-moon-stars me-2"></i>Night Mode</h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-sm-4">
-                    <label class="form-label" for="nightModeStart">Start Time</label>
-                    <input type="time" class="form-control" id="nightModeStart" value="00:00">
-                </div>
-                <div class="col-sm-4">
-                    <label class="form-label" for="nightModeEnd">End Time</label>
-                    <input type="time" class="form-control" id="nightModeEnd" value="05:30">
-                </div>
-                <div class="col-sm-4">
-                    <button type="button" id="setNightTime" class="btn btn-primary w-100 btn-state">
-                        <i class="bi bi-check-lg me-1"></i>Apply
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- ── Temperature URL ─────────────────────────────────── -->
     <div class="card mb-5">

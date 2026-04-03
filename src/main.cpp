@@ -7,9 +7,10 @@
 #include <Adafruit_NeoPixel.h>
 #include <LittleFS.h>
 #include <ESP8266HTTPClient.h>
+#include <time.h>
 
-#include "Utils.h"
-#include "secrets.h"  // add WLAN Credentials in here.
+#include "main.h"
+#include "secrets.h" 
 
 // TRACE output simplified, can be deactivated here
 #define TRACE(...) Serial.printf(__VA_ARGS__)
@@ -37,6 +38,16 @@ int brightnessDecoMode = BRIGHT_ON;
 #define LEDCLOCK_COUNT 252
 #define LEDDECO_COUNT 14
 
+#define TIME_TO_DISPLAY_CLOCK 1
+#define TIME_TO_DISPLAY_DAY 45    
+#define TIME_TO_DISPLAY_TEMPERATURE 50
+#define TIME_TO_DISPLAY_HUMIDITY 55
+
+#define IDX_FIRST_DIGIT 189
+#define IDX_SECOND_DIGIT 126
+#define IDX_THIRD_DIGIT 63
+#define IDX_FOURTH_DIGIT 0
+
 // Declare our NeoPixel objects:
 Adafruit_NeoPixel stripClock(LEDCLOCK_COUNT, LEDCLOCK_PIN, NEO_RGB + NEO_KHZ800);
 Adafruit_NeoPixel stripDeco(LEDDECO_COUNT, LEDDECO_PIN, NEO_RGB + NEO_KHZ800);
@@ -53,16 +64,19 @@ long average = 0;          // the average
 RGB dayColor[4];
 RGB clockColor[4];
 RGB tempColor[4];
+RGB humidityColor[4];
 RGB clockDecoColor[14];
 
 int day = 0;
 int month = 0;
+int year = 0;
 int hour = 0;
 int minute = 0;
 int second = 0;
 
-String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,city_name&key=3b983af0";
+String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name&key=3b983af0";
 int temperature = -1;
+int humidity = 0;
 int timeToChangeMode = 0;
 
 // ── Rainbow config ──────────────────────────────────────────
@@ -70,7 +84,7 @@ int timeToChangeMode = 0;
 #define RAINBOW_MODE_ON 1
 
 int rainbowMode = 0;
-int rainbowOffset = 0;      // offset animado do arco-íris (0-255)
+int rainbowOffset = 0;
 
 // ── Temporização não-bloqueante ─────────────────────────────
 uint32_t lastSecondMs  = 0;   // última vez que 1 segundo passou
@@ -88,6 +102,11 @@ NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed 
 
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
+
+int timeToDisplayClock = TIME_TO_DISPLAY_CLOCK;
+int timeToDisplayDay =  TIME_TO_DISPLAY_DAY;
+int timeToDisplayTemperature = TIME_TO_DISPLAY_TEMPERATURE;
+int timeToDisplayHumidity = TIME_TO_DISPLAY_HUMIDITY;
 
 void setup() {
 
@@ -111,13 +130,15 @@ void setup() {
     delay(500);
     TRACE(".");
    }
+   
+   configTime(-3 * 3600, 0, "br.pool.ntp.org");
 
    LittleFS.begin();
 
    Dir dir = LittleFS.openDir("/");
    TRACE("List of file in directory data\n");
    while (dir.next()) {
-      TRACE("File: %s | Size: %d\n", dir.fileName(), dir.fileSize());
+      TRACE("File: %s | Size: %d\n", dir.fileName().c_str(), dir.fileSize());
    }
 
    serverWeb.on("/", HTTP_GET, []() {
@@ -146,11 +167,11 @@ void setup() {
 
     serverWeb.on("/getInfo", getInfoApi);
     serverWeb.on("/getTime", getTimeApi);
-    serverWeb.on("/getTemperature", getTemperatureApi);
     
     serverWeb.on("/setHourColor", setHourColorApi);
     serverWeb.on("/setDayColor", setDayColorApi);
     serverWeb.on("/setTempColor", setTempColorApi);
+    serverWeb.on("/setHumidityColor", setHumidityColorApi);    
     serverWeb.on("/setDecoColor", setDecoColorApi);
     serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
     
@@ -159,7 +180,7 @@ void setup() {
     
     serverWeb.on("/setNightTime", setNightTimeApi);
     serverWeb.on("/setRainbowMode", setRainbowModeApi);
-    
+        
     // enable CORS header in webserver results
     serverWeb.enableCORS(true);
     
@@ -200,6 +221,11 @@ void setup() {
     tempColor[1] = (RGB){ 255 , 0 , 0 };
     tempColor[2] = (RGB){ 255 , 255 , 255 };
     tempColor[3] = (RGB){ 255 , 255 , 255 };
+
+    humidityColor[0] = (RGB){ 255 , 0 , 0 };
+    humidityColor[1] = (RGB){ 255 , 0 , 0 };
+    humidityColor[2] = (RGB){ 255 , 255 , 255 };
+    humidityColor[3] = (RGB){ 255 , 255 , 255 };    
     
     timeToChangeMode = 0;
 }
@@ -222,18 +248,22 @@ void loop() {
 
     timeToChangeMode++;
 
-    if (timeToChangeMode == 1) {
-      readTheTime();
-      displayTheTime();
-    }
-
-    if (timeToChangeMode == 50) {
-      displayTheDay();
-    }
-
-    if (timeToChangeMode == 55) {
-      readTheTemperature();
-      displayTheTemperature();
+    switch (timeToChangeMode)
+    {
+      case TIME_TO_DISPLAY_CLOCK:
+        readTheTime();
+        displayTheTime();    
+        break;
+      case TIME_TO_DISPLAY_DAY:
+        displayTheDay();
+        break;
+      case TIME_TO_DISPLAY_TEMPERATURE:
+        readTheTemperature();
+        displayTheTemperature();    
+        break;
+      case TIME_TO_DISPLAY_HUMIDITY:
+        displayTheHumidity();
+        break;                  
     }
 
     if (timeToChangeMode >= 60) {
@@ -374,22 +404,13 @@ void applyRainbow() {
     }
   }
 }
+// ── Rainbow helpers ──────────────────────────────────────────
 
 void getTimeApi(){
   String response;
   String contentType = "application/json";
 
   response = String("{ \"Time\" : \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"}";
-
-  serverWeb.send(200, contentType , response);
-  TRACE("%s\n", response);
-}
-
-void getTemperatureApi(){
-  String response;
-  String contentType = "application/json";
-
-  response = String("{ \"Temperature\" : \"") + String(temperature) + " ºC\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
@@ -495,6 +516,22 @@ void setTempColorApi(){
   TRACE("%s\n", response.c_str());
 }
 
+void setHumidityColorApi(){
+  String response;
+  String contentType = "application/json";
+
+  int i = serverWeb.arg(0).toInt();
+  String r = serverWeb.arg(1);
+  String g = serverWeb.arg(2);
+  String b = serverWeb.arg(3);
+
+  humidityColor[i-1] = getColor(r,g,b);
+  response = String("{\"Status\" : \"") + "Humidity color changed to " + colorToStr(humidityColor[i-1]) + "\"}";
+
+  serverWeb.send(200, contentType , response);
+  TRACE("%s\n", response.c_str());
+}
+
 void setDecoColorApi(){
   String response;
   String contentType = "application/json";
@@ -574,6 +611,10 @@ String getConfigClock(){
   char timeStr[9];
   sprintf(timeStr, "%02d:%02d:%02d", hour, minute, second);
 
+  // Date formatado (2 dígitos)
+  char dateStr[11];
+  sprintf(dateStr, "%02d/%02d/%04d", day, month, year);  
+
    // Night mode (2 dígitos)
   char startStr[3];
   char endStr[3];
@@ -582,28 +623,46 @@ String getConfigClock(){
   sprintf(endStr, "%02d", endHourToShow);
 
   return String("{") +
+
          String("\"time\": \"") + timeStr + "\"," +
+         String("\"date\": \"") + dateStr + "\"," +
+         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," +
+         String("\"humidity\": \"") + String(humidity) + " %" + "\"," +
+         
+         String("\"brightnessSensorMap\": ") + brightnessSensor + "," +
+
          String("\"clockFirstDayColor\": \"#") + colorToStr(dayColor[0]) + "\"," +
          String("\"clockSecondDayColor\": \"#") + colorToStr(dayColor[1]) + "\"," +
          String("\"clockFirstMonthColor\": \"#") + colorToStr(dayColor[2]) + "\"," +
          String("\"clockSecodMonthColor\": \"#") + colorToStr(dayColor[3]) + "\"," +
+         
          String("\"clockFirstHourColor\": \"#") + colorToStr(clockColor[0]) + "\"," +
          String("\"clockSecondHourColor\": \"#") + colorToStr(clockColor[1]) + "\"," +
          String("\"clockFirstMinuteColor\": \"#") + colorToStr(clockColor[2]) + "\"," +
          String("\"clockSecodMinuteColor\": \"#") + colorToStr(clockColor[3]) + "\"," +
+         
          String("\"tempFirstValueColor\": \"#") + colorToStr(tempColor[0]) + "\"," +
          String("\"tempSecondValueColor\": \"#") + colorToStr(tempColor[1]) + "\"," +
          String("\"tempFirstSymbolColor\": \"#") + colorToStr(tempColor[2]) + "\"," +
          String("\"tempSecondSymbolColor\": \"#") + colorToStr(tempColor[3]) + "\"," +
+         
+         String("\"humidityFirstSymbolColor\": \"#") + colorToStr(humidityColor[0]) + "\"," +
+         String("\"humiditySecondSymbolColor\": \"#") + colorToStr(humidityColor[1]) + "\"," +         
+         String("\"humidityFirstValueColor\": \"#") + colorToStr(humidityColor[2]) + "\"," +
+         String("\"humiditySecondValueColor\": \"#") + colorToStr(humidityColor[3]) + "\"," +
+         
          String("\"decoColor\": \"") + clockDecoColorStr + "\"," +
-            String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," +
+         
+         String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," +
          String("\"decoBrightnessMode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
-         String("\"brightnessSensorMap\": ") + brightnessSensor + "," +
+         
          String("\"rainbowMode\": \"") + rainbowModeToStr(rainbowMode) + "\"," +
-         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," +
+         
          String("\"urlTemperature\": \"") + urlTemp + "\"," +
+         
          String("\"nightModeStart\": \"") + startStr + "\"," +
          String("\"nightModeEnd\": \"") + endStr + "\"" +
+         
          String("}");
 }
 
@@ -631,55 +690,29 @@ void setDecoBrightnessStateApi(){
 }
 
 void readTheTime(){
-  timeClient.update();
 
-  hour = timeClient.getHours();
-  minute = timeClient.getMinutes();
-  second = timeClient.getSeconds();
+  time_t now = time(nullptr);
+  struct tm *ptm = localtime(&now);
 
- // Timestamp completo
-  unsigned long epochTime = timeClient.getEpochTime();
+  //timeClient.update();
+  
+  //hour = timeClient.getHours(); 
+  //minute = timeClient.getMinutes(); 
+  //second = timeClient.getSeconds(); 
+  
+  // Timestamp completo 
+  //unsigned long epochTime = timeClient.getEpochTime(); 
+  
+  // Converte para data 
+  //struct tm *ptm = gmtime((time_t *)&epochTime); 
+  hour = ptm->tm_hour;
+  minute = ptm->tm_min;
+  second = ptm->tm_sec;
+  day = ptm->tm_mday; 
+  month = ptm->tm_mon + 1; 
+  year = ptm->tm_year + 1900;
 
-  // Converte para data
-  struct tm *ptm = gmtime((time_t *)&epochTime);
-
-  day = ptm->tm_mday;
-  month = ptm->tm_mon + 1;
-
-  // Exibe no Serial
-  TRACE("Data: %02d/%02d  Hora: %02d:%02d:%02d\n", day, month, hour, minute, second);
-}
-
-void displayTheDay(){
-  stripClock.clear(); //clear the clock face
-
-  int firstDigit = month % 10; //work out the value of the first digit and then display it
-  displayNumber(firstDigit, 0, colorToInt(dayColor[3]));
-
-  int secondDigit = floor(month / 10); //work out the value for the second digit and then display it
-  displayNumber(secondDigit, 63, colorToInt(dayColor[2]));
-
-  int thirdDigit = day % 10; //work out the value for the third digit and then display it
-  displayNumber(thirdDigit, 126, colorToInt(dayColor[1]));
-
-  int fourthDigit = floor(day/ 10); //work out the value for the fourth digit and then display it
-  displayNumber(fourthDigit, 189, colorToInt(dayColor[0]));
-}
-
-void displayTheTime(){
-  stripClock.clear(); //clear the clock face
-
-  int firstminuteDigit = minute % 10; //work out the value of the first digit and then display it
-  displayNumber(firstminuteDigit, 0, colorToInt(clockColor[3]));
-
-  int secondminuteDigit = floor(minute / 10); //work out the value for the second digit and then display it
-  displayNumber(secondminuteDigit, 63, colorToInt(clockColor[2]));
-
-  int firstHourDigit = hour % 10; //work out the value for the third digit and then display it
-  displayNumber(firstHourDigit, 126, colorToInt(clockColor[1]));
-
-  int secondHourDigit = floor(hour/ 10); //work out the value for the fourth digit and then display it
-  displayNumber(secondHourDigit, 189, colorToInt(clockColor[0]));
+  TRACE("Data: %02d/%02d/%04d  | Hora: %02d:%02d:%02d\n", day, month, year, hour, minute, second);
 }
 
 void readTheTemperature(){
@@ -713,6 +746,7 @@ void readTheTemperature(){
 
           JSONVar keys = myObject.keys();
           temperature = (int)myObject["temp"];
+          humidity = (int)myObject["humidity"];
           TRACE("Temperature value read: %03d\n", temperature);
         }
       } else {
@@ -725,22 +759,69 @@ void readTheTemperature(){
     }
 }
 
-void displayTheTemperature(){
+void displayTheDay(){
+  int tensDay, unitsDay, tensMonth, unitsMonth;
+
+  getDigits(day, tensDay, unitsDay);  
+  getDigits(month, tensMonth, unitsMonth);  
+
   stripClock.clear(); //clear the clock face
 
-  letterC(0, colorToInt(tempColor[3]));
+  displayNumber(tensDay, IDX_FIRST_DIGIT, colorToInt(dayColor[0]));
+  displayNumber(unitsDay, IDX_SECOND_DIGIT, colorToInt(dayColor[1]));  
+  displayNumber(tensMonth, IDX_THIRD_DIGIT, colorToInt(dayColor[2]));  
+  displayNumber(unitsMonth, IDX_FOURTH_DIGIT, colorToInt(dayColor[3])); 
+}
 
-  symbolDegrees(63, colorToInt(tempColor[2]));
+void displayTheTime(){
+  int tensHour, unitsHour, tensMinute, unitsMinute;
 
-  int firstTempDigit = temperature % 10; //work out the value for the third digit and then display it
-  displayNumber(firstTempDigit, 126, colorToInt(tempColor[1]));
+  getDigits(minute, tensMinute, unitsMinute);  
+  getDigits(hour, tensHour, unitsHour);  
 
-  int secondTempDigit = floor(temperature/ 10); //work out the value for the fourth digit and then display it
-  displayNumber(secondTempDigit, 189, colorToInt(tempColor[0]));
+  stripClock.clear(); //clear the clock face
+
+  displayNumber(tensHour, IDX_FIRST_DIGIT, colorToInt(clockColor[0]));
+  displayNumber(unitsHour, IDX_SECOND_DIGIT, colorToInt(clockColor[1]));  
+  displayNumber(tensMinute, IDX_THIRD_DIGIT, colorToInt(clockColor[2]));  
+  displayNumber(unitsMinute, IDX_FOURTH_DIGIT, colorToInt(clockColor[3])); 
+}
+
+void displayTheHumidity(){
+
+  int tens, units;
+
+  getDigits(humidity, tens, units);
+  stripClock.clear();
+
+  letterH(IDX_FIRST_DIGIT, colorToInt(humidityColor[0]));
+  letterH(IDX_SECOND_DIGIT, colorToInt(humidityColor[1]));
+  displayNumber(tens, IDX_THIRD_DIGIT, colorToInt(humidityColor[2]));  
+  displayNumber(units, IDX_FOURTH_DIGIT, colorToInt(humidityColor[3]));
+}
+
+void displayTheTemperature(){
+
+  int tens, units;
+
+  getDigits(temperature, tens, units);  
+  stripClock.clear();
+
+  displayNumber(tens, IDX_FIRST_DIGIT, colorToInt(tempColor[0]));
+  displayNumber(units, IDX_SECOND_DIGIT, colorToInt(tempColor[1]));
+  symbolDegrees(IDX_THIRD_DIGIT, colorToInt(tempColor[2]));  
+  letterC(IDX_FOURTH_DIGIT, colorToInt(tempColor[3]));
 }
 
 uint32_t colorToInt(RGB color){
   return stripClock.Color(color.g, color.r, color.b);
+}
+
+void getDigits(int value, int &tens, int &units) {
+  value = constrain(value, 0, 99);
+
+  tens = value / 10;
+  units = value % 10;
 }
 
 String rainbowModeToStr(int mode){
@@ -854,6 +935,12 @@ void digitNine(int offset, uint32_t colour){
 void letterC(int offset, uint32_t colour){
   stripClock.fill(colour, (9 + offset), 18);
   stripClock.fill(colour, (45 + offset), 18);
+}
+
+void letterH(int offset, uint32_t colour){
+  stripClock.fill(colour, (0 + offset), 9);
+  stripClock.fill(colour, (18 + offset), 27);
+  stripClock.fill(colour, (54 + offset), 9);
 }
 
 void symbolDegrees(int offset, uint32_t colour){
