@@ -83,7 +83,7 @@ body {
 
 .card-header h6 {
 	margin: 0;
-	font-size: 0.72rem;
+	font-size: 0.8rem;
 	font-weight: 600;
 	color: var(--text-muted);
 	text-transform: uppercase;
@@ -99,7 +99,7 @@ body {
 	text-align: center;
 }
 
-.stat-icon  { font-size: 1.2rem; color: var(--text-light); margin-bottom: 0.5rem; }
+.stat-icon  { font-size: 2.2rem; color: var(--text-light); margin-bottom: 0.5rem; }
 .stat-value { font-size: 1.65rem; font-weight: 600; color: var(--text); line-height: 1.2; }
 .stat-label { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; }
 

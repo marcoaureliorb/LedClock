@@ -20,7 +20,6 @@
             <i class="bi bi-clock-fill fs-5"></i>
             <span>
                 <span class="brand-name">Led Clock</span>
-                <span class="brand-sub ms-2">Control Panel</span>
             </span>
         </span>
 
@@ -36,11 +35,12 @@
                 <span class="conn-dot" id="connDot"></span>
                 <span id="connLabel">CONNECTING…</span>
             </span>
-
+            <!--
             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3"
                     id="btnMock" onclick="loadDataMock()" title="Load mock data">
                 <i class="bi bi-cpu me-1"></i>MOCK
             </button>
+            -->
 
             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3"
                     id="btnRefresh" onclick="loadData()" title="Refresh">
@@ -57,28 +57,28 @@
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-3">
             <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-clock"></i></div>
+                <div class="stat-icon text-success"><i class="bi bi-clock"></i></div>
                 <div class="stat-value" id="time">--:--</div>
                 <div class="stat-label">Time</div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+                <div class="stat-icon text-primary"><i class="bi bi-calendar3"></i></div>
                 <div class="stat-value" id="date">--/--/--</div>
                 <div class="stat-label">Date</div>
             </div>
         </div>	
         <div class="col-12 col-md-3">
             <div class="stat-card h-100">
-                <div class="stat-icon text-warning"><i class="bi bi-thermometer-half"></i></div>
+                <div class="stat-icon text-danger"><i class="bi bi-thermometer-half"></i></div>
                 <div class="stat-value" id="temperature">--</div>
                 <div class="stat-label">Temperature</div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="stat-card h-100">
-                <div class="stat-icon text-info"><i class="bi bi-moisture"></i></div>
+                <div class="stat-icon text-warning"><i class="bi bi-moisture"></i></div>
                 <div class="stat-value" id="humidity">---</div>
                 <div class="stat-label">Humidity</div>
             </div>
@@ -92,7 +92,7 @@
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-clock me-2"></i>Clock Colors</h6>
+                    <h6 class="text-success"><i class="bi bi-clock me-2 text-success"></i>Clock Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -130,7 +130,7 @@
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-calendar3 me-2"></i>Date Colors</h6>
+                    <h6 class="text-primary"><i class="bi bi-calendar3 me-2 text-primary"></i>Date Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -168,7 +168,7 @@
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-thermometer me-2 text-warning"></i>Temperature Colors</h6>
+                    <h6 class="text-danger"><i class="bi bi-thermometer me-2 text-danger"></i>Temperature Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -206,7 +206,7 @@
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-moisture me-2 text-success"></i>Humidity Colors</h6>
+                    <h6 class="text-warning"><i class="bi bi-moisture me-2 text-warning"></i>Humidity Colors</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -239,16 +239,26 @@
                 </div>
             </div>
         </div>        
-    </div><!-- /row -->
-	
-    <!-- ── Decoration lights ───────────────────────────────── -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <h6><i class="bi bi-stars me-2 text-info"></i>Decoration Lights</h6>
-        </div>
-        <div class="card-body d-flex flex-column gap-3">
 
-            <div>
+
+
+    </div><!-- /row -->
+
+
+
+
+    <!-- ── Clock + Day/Month colors ────────────────────────── -->
+    <div class="row g-3 mb-3">
+
+        <!-- Clock colors -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6><i class="bi bi-clock me-2"></i>Decoration Lights Line 1</h6>
+                </div>
+                <div class="card-body d-flex flex-column gap-3">
+
+                                <div>
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <p class="form-label mb-0">Line 1</p>
                     <input type="color" id="bulkColorLine1" value="#ffffff" title="Pick color to apply to all">
@@ -267,7 +277,18 @@
                 </div>
             </div>
 
-            <hr class="section-divider my-0">
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Day / Month colors -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6><i class="bi bi-calendar3 me-2"></i>Decoration Lights Line 2</h6>
+                </div>
+                <div class="card-body d-flex flex-column gap-3">
 
             <div>
                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -286,11 +307,14 @@
                     <input type="color" id="favDLC13" value="#ffffff">
                     <input type="color" id="favDLC14" value="#ffffff">
                 </div>
-            </div>
+            </div>                    
 
+
+                </div>
+            </div>
         </div>
-    </div>
-	
+    </div><!-- /row -->
+
     <!-- ── Brightness + Rainbow ────────────────────────────── -->
     <div class="row g-3 mb-3">
 
@@ -298,7 +322,7 @@
         <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-sun me-2 text-warning"></i>Brightness State</h6>
+                    <h6><i class="bi bi-sun me-2 text-danger"></i>Brightness State</h6>
                 </div>
                 <div class="card-body d-flex flex-column gap-3">
 
@@ -415,11 +439,10 @@
     <!-- ── Temperature URL ─────────────────────────────────── -->
     <div class="card mb-5">
         <div class="card-header">
-            <h6><i class="bi bi-link-45deg me-2 text-secondary"></i>Temperature API URL</h6>
+            <h6><i class="bi bi-link-45deg me-2 text-primary"></i>Temperature API URL</h6>
         </div>
         <div class="card-body">
-            <input type="text" disabled class="form-control font-monospace small"
-                   id="urlTemperature" value="" placeholder="Loading…">
+            <input type="text" readonly class="form-control font-monospace small" disabled id="urlTemperature" value="" placeholder="Loading…">
         </div>
     </div>
 
