@@ -66,8 +66,8 @@ function setBrightnessState(event, api, mode) {
 	get('http://192.168.100.7/' + api + '?p=' + mode);
 }
 
-function setRainbowState(event, mode) {
-	get('http://192.168.100.7/setRainbowMode?p=' + mode);
+function setRainbowState(event,api, mode) {
+	get('http://192.168.100.7/'+ api + '?p=' + mode);
 }
 
 function setNightTime(event) {
@@ -127,7 +127,8 @@ function loadDataMock() {
 		humiditySecondValueColor:  '(221,125,0)',		
 		clockBrightnessMode: '1',
 		decoBrightnessMode:  '2',
-		rainbowMode:         '0',
+		rainbowModeClock:    '0',
+		rainbowModeDeco:     '0',		
 		decoColor: '(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)'
 	};
 	setConn(true);
@@ -214,7 +215,9 @@ function updateUi(d) {
 
 	changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], d['clockBrightnessMode'][0]);
 	changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], d['decoBrightnessMode'][0]);
-	changeRainbowState(['idRSOn', 'idRSOff'],               d['rainbowMode'][0]);
+
+	changeRainbowState(['idERCOn', 'idERCOff'], d['rainbowModeClock'][0]);
+	changeRainbowState(['idERDOn', 'idERDOff'], d['rainbowModeDeco'][0]);	
 
 	var decoColors = d['decoColor'].replaceAll(' ', '').split('-');
 	for (var i = 0; i < 14; i++) {
@@ -242,6 +245,12 @@ function bindEvents() {
 	document.querySelector('#tempFirstSymbolColor').addEventListener('change', function (e) { setColorToDigit(e, 'setTempColor', '3'); });
 	document.querySelector('#tempSecondSymbolColor').addEventListener('change', function (e) { setColorToDigit(e, 'setTempColor', '4'); });
 
+	// Humidity
+	document.querySelector('#humidityFirstSymbolColor') .addEventListener('change', function (e) { setColorToDigit(e, 'setHumidityColor', '1'); });
+	document.querySelector('#humiditySecondSymbolColor').addEventListener('change', function (e) { setColorToDigit(e, 'setHumidityColor', '2'); });
+	document.querySelector('#humidityFirstValueColor').addEventListener('change', function (e) { setColorToDigit(e, 'setHumidityColor', '3'); });
+	document.querySelector('#humiditySecondValueColor').addEventListener('change', function (e) { setColorToDigit(e, 'setHumidityColor', '4'); });	
+
 	// Decoration lights
 	for (var i = 1; i <= 14; i++) {
 		(function (idx) {
@@ -265,9 +274,13 @@ function bindEvents() {
 	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0'); });
 	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2'); });
 
-	// Rainbow
-	document.querySelector('#idRSOn') .addEventListener('click', function (e) { setRainbowState(e, 'ON');  changeRainbowState(['idRSOn', 'idRSOff'], '1'); });
-	document.querySelector('#idRSOff').addEventListener('click', function (e) { setRainbowState(e, 'OFF'); changeRainbowState(['idRSOn', 'idRSOff'], '0'); });
+	// Rainbow clock
+	document.querySelector('#idERCOn') .addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsClock', 'ON');  changeRainbowState(['idERCOn', 'idERCOff'], '1'); });
+	document.querySelector('#idERCOff').addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsClock','OFF'); changeRainbowState(['idERCOn', 'idERCOff'], '0'); });
+
+	// Rainbow deco
+	document.querySelector('#idERDOn') .addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsDeco', 'ON');  changeRainbowState(['idERDOn', 'idERDOff'], '1'); });
+	document.querySelector('#idERDOff').addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsDeco','OFF'); changeRainbowState(['idERDOn', 'idERDOff'], '0'); });	
 	
 	// Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });

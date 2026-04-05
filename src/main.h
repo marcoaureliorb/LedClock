@@ -17,7 +17,9 @@ void setHumidityColorApi();
 void setClockBrightnessStateApi();
 void setDecoBrightnessStateApi();
 void setNightTimeApi();
-void setRainbowModeApi();
+
+void setRainbowClockEffects();
+void setRainbowDecoEffects();
 
 void readTheTime();
 void displayTheTime();
@@ -32,10 +34,13 @@ String getConfigClock();
 String brightnessModeToStr(int mode);
 
 uint32_t colorToInt(RGB color);
-void applyRainbow();
+void applyRainbowToLedClock();
+void applyRainbowToLedDeco();
 uint32_t applyBrightnessToColor(uint32_t color, uint8_t brightness);
 
 void getDigits(int value, int &tens, int &units);
+
+void displayInfo(String texto, String value);
 
 void displayNumber(int digitToDisplay, int offsetBy, uint32_t colourToUse);
 void digitZero(int offset, uint32_t colour);
