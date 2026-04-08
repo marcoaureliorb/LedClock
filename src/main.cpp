@@ -35,6 +35,10 @@ int timeZone = -3 * 3600;
 #define BRIGHT_AUTO 2
 #define BRIGHT_DEFAULT_VALUE 50
 
+// ── Night mode config ──────────────────────────────────────────
+#define NIGHT_MODE_OFF 0
+#define NIGHT_MODE_ON 1
+
 // ── Rainbow config ──────────────────────────────────────────
 #define RAINBOW_MODE_OFF 0
 #define RAINBOW_MODE_ON 1
@@ -110,6 +114,7 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed every minute (60000ms)
 String localIp=  "000.000.000.00";
 
+int nightMode = NIGHT_MODE_ON;
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
 
@@ -316,7 +321,7 @@ void loop() {
 
     // Modo noturno — força apagado
     int hourInt = hour * 100 + minute;
-    if (hourInt >= startHourToShow && hourInt <= endHourToShow) {
+    if (nightMode == NIGHT_MODE_ON && hourInt >= startHourToShow && hourInt <= endHourToShow) {
       stripDeco.setBrightness(0);
       stripClock.setBrightness(0);
     }
@@ -490,18 +495,20 @@ void setNightTimeApi(){
   String response;
   String contentType = "application/json";
 
-  if (!serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
+  if (!serverWeb.hasArg("e") || !serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
     serverWeb.send(400, "text/plain", "Parametros s e e são obrigatórios");
     return;
   }
-
+  
+  String enabled = serverWeb.arg("e"); // exemplo: "S/N"
   String startTime = serverWeb.arg("s"); // exemplo: "00:00"
   String endTime   = serverWeb.arg("e"); // exemplo: "05:30"
 
+  nightMode = enabled == "S" ? NIGHT_MODE_ON : NIGHT_MODE_OFF;
   startHourToShow = convertToHHMM(startTime);
   endHourToShow = convertToHHMM(endTime);
 
-  response = String("{ \"Status\" : \"") + "NightTime change to " + startTime + " and " + endTime + "\"}";
+  response = String("{ \"Status\" : \"") + "NightTime change to state " + enabled + ". Time: " + startTime + " and " + endTime + "\"}";
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
 }
