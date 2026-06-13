@@ -1,6 +1,7 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include <Arduino_JSON.h>
+#include <ArduinoJson.h>
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -12,40 +13,34 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <SPI.h>
+#include <cstdint>
+#include <StreamString.h>
+#include <EEPROM.h>
 
-#include "main.h"
-#include "secrets.h" 
+// --------------------------------------------------------------------------------
+// ------------------------------------ DEFINE ------------------------------------
+// --------------------------------------------------------------------------------
 
-// TRACE output simplified, can be deactivated here
-#define TRACE(...) Serial.printf(__VA_ARGS__)
+#define TRACE(...) Serial.printf(__VA_ARGS__, "\n") // TRACE output simplified, can be deactivated here
 
-// Time zone
-const char * timeServer = "br.pool.ntp.org";
-int timeZone = -3 * 3600;
-
+#define OLED_SDA 12
+#define OLED_SCL 14
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
-// choose the brightness Clock Mode
-#define BRIGHT_OFF 0
-#define BRIGHT_ON 1
-#define BRIGHT_AUTO 2
-#define BRIGHT_DEFAULT_VALUE 50
+#define BRIGHT_OFF 0 // choose off the brightness Clock Mode
+#define BRIGHT_ON 1  // choose on the brightness Clock Mode
+#define BRIGHT_AUTO 2  // choose auto the brightness Clock Mode
+#define BRIGHT_DEFAULT_VALUE 50  // default vale for  brightness Clock Mode
 
-// ── Night mode config ──────────────────────────────────────────
-#define NIGHT_MODE_OFF 0
-#define NIGHT_MODE_ON 1
+#define NIGHT_MODE_OFF 0 // Night mode config off
+#define NIGHT_MODE_ON 1 // Night mode config on
 
-// ── Rainbow config ──────────────────────────────────────────
-#define RAINBOW_MODE_OFF 0
-#define RAINBOW_MODE_ON 1
-
-// How many NeoPixels are attached to the Arduino?
-#define LEDCLOCK_COUNT 252
-#define LEDDECO_COUNT 14
+#define LEDCLOCK_COUNT 252 // Count for neopixel attached to the ESP8266 to clock
+#define LEDDECO_COUNT 14  // Count for neopixel attached to the ESP8266 to decoration
 
 #define TIME_TO_DISPLAY_CLOCK 1
 #define TIME_TO_DISPLAY_DAY 45    
@@ -57,327 +52,243 @@ int timeZone = -3 * 3600;
 #define IDX_THIRD_DIGIT 63
 #define IDX_FOURTH_DIGIT 0
 
-int brightnessClockMode = BRIGHT_ON;
-int brightnessSensor = BRIGHT_DEFAULT_VALUE;
-int brightnessDecoMode = BRIGHT_ON;
+#define NUM_READINGS_LRD 12 // Smoothing of the readings from the light sensor so it is not too twitchy
 
-// Declare our NeoPixel objects:
+#define AZUL 0x0000ff
+#define VERDE 0x00ff00
+#define VERMELHO 0xff0000
+#define AMARELO 0xffff00
+#define BRANCO 0xffffff
+
+#define CONFIG_MAGIC   0xCAFEBABE
+#define CONFIG_VERSION 1
+
+// --------------------------------------------------------------------------------
+// -----------------------------------  CONST  ------------------------------------
+// --------------------------------------------------------------------------------
+
+const char *ssid = "Biscoitao2.4G";
+const char *passPhrase = "4luci184";
+const String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name&key=3b983af0";
+
+// --------------------------------------------------------------------------------
+// ------------------------------------ STRUCTS------------------------------------
+// --------------------------------------------------------------------------------
+
+struct Time {
+    int hour;
+    int minute;
+};
+
+struct NightMode{
+    int enabled;
+    Time start;
+    Time end;
+};
+
+struct Date{
+    int day;
+    int month;
+    int year;
+};
+
+struct BrightnessMode{
+    int clockMode;
+    int decoMode; 
+    int brightValue; 
+    int brightnessSensorMap[NUM_READINGS_LRD];
+};
+
+struct RuntimeData {
+    Time time;
+    Date date;
+    int temperature;
+    int humidity;
+};
+
+struct Config{
+    
+  uint32_t magic;
+  uint16_t version;
+
+  uint32_t  clockColor[4];
+  uint32_t  dayColor[4];
+  uint32_t  tempColor[4];
+  uint32_t  humidityColor[4];
+  uint32_t  decoColor[14];
+
+  BrightnessMode brightnessMode;
+  NightMode nightMode;
+};
+
+// --------------------------------------------------------------------------------
+// -------------------------- FUNCTIONS DECLARATIONS ------------------------------
+// --------------------------------------------------------------------------------
+
+void loadConfigurationDefault();
+
+void getInfoApi();
+void setHourColorApi();
+void setDayColorApi();
+void setTempColorApi();
+void setDecoColorApi();
+void setDecoColorAllApi();
+void setHumidityColorApi();
+void setClockBrightnessStateApi();
+void setDecoBrightnessStateApi();
+void setNightTimeApi();
+
+void readTheTime();
+void readTheTemperature();
+void readThebrightnessValue();
+
+void displayTheTime();
+Time parseTime(JsonObject obj);
+void displayTheDay();
+void displayTheTemperature();
+void displayTheHumidity();
+
+String getConfigClock();
+String brightnessModeToStr(int mode);
+uint32_t hexStringToColor(const char* hexStr);
+bool nightModeEnable();
+
+void getDigits(int value, int &tens, int &units);
+void displayNumber(int digitToDisplay, int offsetBy, uint32_t colourToUse);
+void digitZero(int offset, uint32_t colour);
+void digitOne(int offset, uint32_t colour);
+void digitTwo(int offset, uint32_t colour);
+void digitThree(int offset, uint32_t colour);
+void digitFour(int offset, uint32_t colour);
+void digitFive(int offset, uint32_t colour);
+void digitSix(int offset, uint32_t colour);
+void digitSeven(int offset, uint32_t colour);
+void digitEight(int offset, uint32_t colour);
+void digitNine(int offset, uint32_t colour);
+void letterC(int offset, uint32_t colour);
+void letterH(int offset, uint32_t colour);
+void symbolDegrees(int offset, uint32_t colour);
+
+// --------------------------------------------------------------------------------
+// -------------------------------- GLOBAL VARIABLES ------------------------------
+// --------------------------------------------------------------------------------
+
+Config  dadosLedClock;
+RuntimeData dadosLedClockRuntimeData;
+
 Adafruit_NeoPixel stripClock(LEDCLOCK_COUNT, D7, NEO_RGB + NEO_KHZ800);
-Adafruit_NeoPixel stripDeco(LEDDECO_COUNT, D6, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel stripDeco(LEDDECO_COUNT, D8, NEO_RGB + NEO_KHZ800);
 
-// Declare oled display
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-//Smoothing of the readings from the light sensor so it is not too twitchy
-const int numReadings = 12;
+int currentReadIndexLdr = 0; // the index of the current reading
 
-int readings[numReadings]; // the readings from the analog input
-int readIndex = 0;         // the index of the current reading
-long total = 0;            // the running total
-long average = 0;          // the average
-
-// RGB variables for clock mode
-RGB dayColor[4];
-RGB clockColor[4];
-RGB tempColor[4];
-RGB humidityColor[4];
-RGB clockDecoColor[14];
-
-int day = 0;
-int month = 0;
-int year = 0;
-int hour = 0;
-int minute = 0;
-int second = 0;
-
-String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name&key=3b983af0";
-int temperature = -1;
-int humidity = 0;
 int timeToChangeMode = 0;
 
-int rainbowClockMode = 0;
-int rainbowDecoMode = 0;
-int rainbowOffset = 0;
+uint32_t lastSecondMs  = 0;  // Temporização não-bloqueante -  última vez que 1 segundo passou
 
-// ── Temporização não-bloqueante ─────────────────────────────
-uint32_t lastSecondMs  = 0;   // última vez que 1 segundo passou
-uint32_t lastRainbowMs = 0;   // última atualização do rainbow
-
-// gestion des evenements du wifi
 void onConnected(const WiFiEventStationModeConnected& event);
 void onGotIP(const WiFiEventStationModeGotIP& event);
 
-// webserver
 ESP8266WebServer serverWeb(80);
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, timeServer, timeZone, 60000); // time is refreshed every minute (60000ms)
+NTPClient timeClient(ntpUDP, "br.pool.ntp.org", -3 * 3600, 60000); // time is refreshed every minute (60000ms)
 String localIp=  "000.000.000.00";
 
 int nightMode = NIGHT_MODE_ON;
 int startHourToShow = 0 * 0 + 0; // hour * 100 + minute
 int endHourToShow = 5 * 100 + 30;
 
-int timeToDisplayClock = TIME_TO_DISPLAY_CLOCK;
-int timeToDisplayDay =  TIME_TO_DISPLAY_DAY;
-int timeToDisplayTemperature = TIME_TO_DISPLAY_TEMPERATURE;
-int timeToDisplayHumidity = TIME_TO_DISPLAY_HUMIDITY;
-
-void setup() {
-
-  Serial.begin(9600);
-  Serial.setDebugOutput(false);
-
-  // wait for serial monitor to start completely.
-  delay(3000);
-   
-  TRACE("\nHELLO !\n");
-
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-  }
-
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  display.display();
-  delay(2000); // Pause for 2 seconds
-  
-  display.setTextColor(SSD1306_WHITE);  
-  
-  displayInfo("","");
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, passPhrase);
-  WiFi.hostname("WIFI-Clock");
-
-  static WiFiEventHandler onConnectedHandler = WiFi.onStationModeConnected(onConnected);
-  static WiFiEventHandler onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
-
-  TRACE("\n");
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    TRACE(".");
-  }
-   
-   configTime(-3 * 3600, 0, "br.pool.ntp.org");
-
-   LittleFS.begin();
-
-   Dir dir = LittleFS.openDir("/");
-   TRACE("List of file in directory data\n");
-   while (dir.next()) {
-      TRACE("File: %s | Size: %d\n", dir.fileName().c_str(), dir.fileSize());
-   }
-
-   serverWeb.on("/", HTTP_GET, []() {
-       if (LittleFS.exists("/index.html")) {
-           File file = LittleFS.open("/index.html", "r");
-           TRACE("Tamanho do arquivo index.html %d. Tamanho Original: %d", file.size(), 16712);
-           serverWeb.streamFile(file, "text/html");
-           file.close();
-       } else {
-           serverWeb.send(404, "text/plain", "index nao encontrado");
-       }
-    });
-
-    serverWeb.on("/style.css", HTTP_GET, []() {
-        File file = LittleFS.open("/style.css", "r");
-        serverWeb.streamFile(file, "text/css");
-        file.close();
-    });
-    
-    serverWeb.on("/app.js", HTTP_GET, []() {
-        File file = LittleFS.open("/app.js", "r");
-        serverWeb.streamFile(file, "application/javascript");
-        file.close();
-    });
-
-
-    serverWeb.on("/getInfo", getInfoApi);
-    serverWeb.on("/getTime", getTimeApi);
-    
-    serverWeb.on("/setHourColor", setHourColorApi);
-    serverWeb.on("/setDayColor", setDayColorApi);
-    serverWeb.on("/setTempColor", setTempColorApi);
-    serverWeb.on("/setHumidityColor", setHumidityColorApi);    
-    serverWeb.on("/setDecoColor", setDecoColorApi);
-    serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
-    
-    serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
-    serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
-    
-    serverWeb.on("/setNightTime", setNightTimeApi);
-
-    serverWeb.on("/setRainbowEffectsClock", setRainbowClockEffects);
-    serverWeb.on("/setRainbowEffectsDeco", setRainbowDecoEffects);    
-        
-    // enable CORS header in webserver results
-    serverWeb.enableCORS(true);
-    
-    serverWeb.begin();
-    
-    timeClient.begin();
-    
-    stripClock.begin();
-    stripClock.show();
-    stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
-    
-    stripDeco.begin();
-    stripDeco.show();
-    stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
-    
-    //smoothing
-    // initialize all the readings to 0:
-    for (int thisReading = 0; thisReading < numReadings; thisReading++)
-    {
-      readings[thisReading] = 0;
-    }
-    
-    for(int i=0; i<LEDDECO_COUNT; i++) {
-        clockDecoColor[i] = (RGB){ 255 , 255 , 255 };
-    }
-    
-    dayColor[0] = (RGB){ 0 , 255 , 0 };
-    dayColor[1] = (RGB){ 0 , 255 , 0 };
-    dayColor[2] = (RGB){ 255 , 255 , 255 };
-    dayColor[3] = (RGB){ 255 , 255 , 255 };
-    
-    clockColor[0] = (RGB){ 0 , 0 , 255 };
-    clockColor[1] = (RGB){ 0 , 0 , 255 };
-    clockColor[2] = (RGB){ 255 , 255 , 255 };
-    clockColor[3] = (RGB){ 255 , 255 , 255 };
-    
-    tempColor[0] = (RGB){ 255 , 0 , 0 };
-    tempColor[1] = (RGB){ 255 , 0 , 0 };
-    tempColor[2] = (RGB){ 255 , 255 , 255 };
-    tempColor[3] = (RGB){ 255 , 255 , 255 };
-
-    humidityColor[0] = (RGB){ 255 , 0 , 0 };
-    humidityColor[1] = (RGB){ 255 , 0 , 0 };
-    humidityColor[2] = (RGB){ 255 , 255 , 255 };
-    humidityColor[3] = (RGB){ 255 , 255 , 255 };    
-    
-    timeToChangeMode = 0;
+// --------------------------------------------------------------------------------
+// -------------------------------- UTILS FUNCTIONS  ------------------------------
+// --------------------------------------------------------------------------------
+void saveConfig()
+{
+    EEPROM.put(0, dadosLedClock);
+    EEPROM.commit();
+    Serial.println("Configuração salva.");
 }
 
-void loop() {
+bool loadConfig()
+{
+    EEPROM.get(0, dadosLedClock);
 
-  if (!WiFi.isConnected()) {
-    TRACE("waiting for wifi ...\n");
-    delay(1000);
-    return;
-  }
-
-  serverWeb.handleClient();
-
-  uint32_t now = millis();
-
-  // ── Lógica de 1 segundo ─────────────────────────────────────
-  if (now - lastSecondMs >= 1000) {
-    lastSecondMs = now;
-
-    timeToChangeMode++;
-
-    switch (timeToChangeMode)
+    if (dadosLedClock.magic != CONFIG_MAGIC || dadosLedClock.version != CONFIG_VERSION)
     {
-      case TIME_TO_DISPLAY_CLOCK:
-        readTheTime();
-        displayTheTime();    
-        break;
-      case TIME_TO_DISPLAY_DAY:
-        displayTheDay();
-        break;
-      case TIME_TO_DISPLAY_TEMPERATURE:
-        readTheTemperature();
-        displayTheTemperature();    
-        break;
-      case TIME_TO_DISPLAY_HUMIDITY:
-        displayTheHumidity();
-        break;                  
+        return false;
     }
 
-    if (timeToChangeMode >= 60) {
-      timeToChangeMode = 0;
-    }
+    return true;
+}
 
-    // Brilho
-    switch (brightnessDecoMode) {
-      case BRIGHT_OFF:  stripDeco.setBrightness(0); break;
-      case BRIGHT_ON:   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE); break;
-      case BRIGHT_AUTO: readThebrightnessValue(); stripDeco.setBrightness(brightnessSensor); break;
-    }
-    switch (brightnessClockMode) {
-      case BRIGHT_OFF:  stripClock.setBrightness(0); break;
-      case BRIGHT_ON:   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE); break;
-      case BRIGHT_AUTO: readThebrightnessValue(); stripClock.setBrightness(brightnessSensor); break;
-    }
+Time parseTime(JsonObject obj) {
+    Time t;
+    t.hour = obj["hour"] | 0;
+    t.minute = obj["minute"] | 0;
+    return t;
+}
 
-    // Deco LEDs
-   for(int i=0; i<LEDDECO_COUNT; i++) {
-       stripDeco.setPixelColor(i, colorToInt(clockDecoColor[i]));
-   }
+void loadConfigurationDefault(){
+  
+  memset(&dadosLedClock, 0, sizeof(Config));
+  
+  readTheTime();
+  readTheTemperature();
+  readThebrightnessValue();
 
-    // Modo noturno — força apagado
-    int hourInt = hour * 100 + minute;
-    if (nightMode == NIGHT_MODE_ON && hourInt >= startHourToShow && hourInt <= endHourToShow) {
-      stripDeco.setBrightness(0);
-      stripClock.setBrightness(0);
-    }
+  dadosLedClock.magic = CONFIG_MAGIC;
+  dadosLedClock.version = CONFIG_VERSION;
 
-    // Se rainbow está desligado, mostra o clock aqui 1x/s
-    if (rainbowClockMode == RAINBOW_MODE_OFF) {
-      stripClock.show();
-    }
+  dadosLedClock.clockColor[0] = AZUL;
+  dadosLedClock.clockColor[1] = AZUL;
+  dadosLedClock.clockColor[2] = BRANCO;
+  dadosLedClock.clockColor[3] = BRANCO;
 
-    // Se rainbow está desligado, mostra o clock aqui 1x/s
-    if (rainbowDecoMode == RAINBOW_MODE_OFF) {
-      stripDeco.show();
-    }    
-  }
+  dadosLedClock.dayColor[0] = VERDE;
+  dadosLedClock.dayColor[1] = VERDE;
+  dadosLedClock.dayColor[2] = BRANCO;
+  dadosLedClock.dayColor[3] = BRANCO;
+  
+  dadosLedClock.tempColor[0] = VERMELHO;
+  dadosLedClock.tempColor[1] = VERMELHO;
+  dadosLedClock.tempColor[2] = BRANCO;
+  dadosLedClock.tempColor[3] = BRANCO;
+  
+  dadosLedClock.humidityColor[0] = AMARELO;
+  dadosLedClock.humidityColor[1] = AMARELO;
+  dadosLedClock.humidityColor[2] = BRANCO;
+  dadosLedClock.humidityColor[3] = BRANCO;
 
-  // ── Animação rainbow: atualiza ~50x por segundo ─────────────
-  if (rainbowClockMode == RAINBOW_MODE_ON && (now - lastRainbowMs >= 10)) {
-    lastRainbowMs = now;
-    rainbowOffset += 1;   // estoura de 255→0 naturalmente
-    applyRainbowToLedClock();
-    stripClock.show();
-  }
-
-  // ── Animação rainbow: atualiza ~50x por segundo ─────────────
-  if (rainbowDecoMode == RAINBOW_MODE_ON && (now - lastRainbowMs >= 10)) {
-    lastRainbowMs = now;
-    rainbowOffset += 1;   // estoura de 255→0 naturalmente
-    applyRainbowToLedDeco();
-    stripDeco.show();
+  for (int i = 0; i < 14; i++) {
+    dadosLedClock.decoColor[i] = BRANCO;
   }  
+
+  dadosLedClock.brightnessMode.clockMode = BRIGHT_ON;
+  dadosLedClock.brightnessMode.decoMode = BRIGHT_ON;
+
+  dadosLedClock.nightMode.enabled = NIGHT_MODE_ON;
+  dadosLedClock.nightMode.start.hour = 0;
+  dadosLedClock.nightMode.start.minute = 0;
+  dadosLedClock.nightMode.end.hour = 5;
+  dadosLedClock.nightMode.end.minute = 30; 
+
+  saveConfig();
 }
 
-void readThebrightnessValue(){
-    //Record a reading from the light sensor and add it to the array
-    int valueReadFromSensor = analogRead(A0);
+uint32_t hexStringToColor(const char* hexStr) {
+  if (hexStr[0] == '#') hexStr++;
+  return strtoul(hexStr, NULL, 16);
+}
 
-    TRACE("Light sensor value = %03d\n", valueReadFromSensor);
+bool nightModeEnable(){
+  if(dadosLedClock.nightMode.enabled == 0){
+    return false;
+  }
 
-    readings[readIndex] = valueReadFromSensor;
-    readIndex = readIndex + 1; // advance to the next position in the array:
+  int hourInt = dadosLedClockRuntimeData.time.hour * 100 + dadosLedClockRuntimeData.time.minute;
 
-    if (readIndex >= numReadings) {
-      readIndex = 0;
-    }
-
-    //now work out the sum of all the values in the array
-    int sumBrightness = 0;
-    for (int i=0; i < numReadings; i++) {
-          sumBrightness += readings[i];
-    }
-
-    // and calculate the average:
-    int lightSensorValue = sumBrightness / numReadings;
-    brightnessSensor = map(lightSensorValue, 0, 1023, 200, 1);
-
-    TRACE("Mapped brightness value = %04d\n", brightnessSensor);
+  return nightMode == NIGHT_MODE_ON && hourInt >= startHourToShow && hourInt <= endHourToShow;
 }
 
 void onConnected(const WiFiEventStationModeConnected& event){
@@ -400,143 +311,63 @@ void setClockBrightnessStateApi(){
     state.toUpperCase();
     
     if(state == "OFF"){
-        brightnessClockMode = BRIGHT_OFF;
+      dadosLedClock.brightnessMode.clockMode = BRIGHT_OFF;
     }
     else if(state == "ON"){
-        brightnessClockMode = BRIGHT_ON;
+      dadosLedClock.brightnessMode.clockMode = BRIGHT_ON;
     }
     else{
-        brightnessClockMode = BRIGHT_AUTO;
+      dadosLedClock.brightnessMode.clockMode = BRIGHT_AUTO;
     }
     
-    response = String("{\"Status\": \"") + "State clock bright changed to " + brightnessModeToStr(brightnessClockMode) + "\"}";
+    response = String("{\"Status\": \"") + "State clock bright changed to " + brightnessModeToStr(dadosLedClock.brightnessMode.clockMode) + "\"}";
     
     serverWeb.send(200, contentType , response);
     TRACE("%s\n", response.c_str());
+    saveConfig();
 }
 
-// ── Rainbow helpers ──────────────────────────────────────────
+Time convertToHHMM(String timeStr) {
+    Time result{0, 0};
 
-/**
- * Roda de cores: converte posição 0-255 no espectro RGB completo.
- */
-RGB wheelColor(uint8_t pos) {
-  pos = 255 - pos;
-  if (pos < 85) {
-    return (RGB){ (uint8_t)(255 - pos * 3), 0, (uint8_t)(pos * 3) };
-  } else if (pos < 170) {
-    pos -= 85;
-    return (RGB){ 0, (uint8_t)(pos * 3), (uint8_t)(255 - pos * 3) };
-  } else {
-    pos -= 170;
-    return (RGB){ (uint8_t)(pos * 3), (uint8_t)(255 - pos * 3), 0 };
-  }
-}
+    int separator = timeStr.indexOf(':');
 
-/**
- * Percorre todos os LEDs da fita do relógio.
- * Para cada LED que está ACESO (cor != 0, ou seja pertence a um
- * segmento ativo), substitui a cor pela cor arco-íris calculada
- * a partir da posição do LED + rainbowOffset.
- * LEDs APAGADOS (segmentos inativos) permanecem pretos, preservando
- * a forma dos dígitos.
- */
-void applyRainbowToLedClock() {
-  for (int i = 0; i < LEDCLOCK_COUNT; i++) {
-    if (stripClock.getPixelColor(i) != 0) {
-      uint8_t hue = (uint8_t)((i * 255 / LEDCLOCK_COUNT) + rainbowOffset);
-      RGB c = wheelColor(hue);
-      stripClock.setPixelColor(i, stripClock.Color(c.g, c.r, c.b));
-    }
-  }
-}
+    if (separator < 0)
+        return result;
 
-void applyRainbowToLedDeco() {
-  for (int i = 0; i < LEDCLOCK_COUNT; i++) {
-    if (stripDeco.getPixelColor(i) != 0) {
-      uint8_t hue = (uint8_t)((i * 255 / LEDCLOCK_COUNT) + rainbowOffset);
-      RGB c = wheelColor(hue);
-      stripDeco.setPixelColor(i, stripDeco.Color(c.g, c.r, c.b));
-    }
-  }
-}
-// ── Rainbow helpers ──────────────────────────────────────────
+    result.hour = timeStr.substring(0, separator).toInt();
+    result.minute = timeStr.substring(separator + 1).toInt();
 
-void getTimeApi(){
-  String response;
-  String contentType = "application/json";
-
-  response = String("{ \"Time\" : \"") + String(hour) + ":" + String(minute) + ":" + String(second) + "\"}";
-
-  serverWeb.send(200, contentType , response);
-  TRACE("%s\n", response.c_str());
-}
-
-void getTemperatureUrlApi(){
-  String response;
-  String contentType = "application/json";
-
-  response = String("{ \"Url Temperature\" : \"") + urlTemp + "\"}";
-
-  serverWeb.send(200, contentType , response);
-  TRACE("%s\n", response.c_str());
-}
-
-int convertToHHMM(String timeStr) {
-  int separator = timeStr.indexOf(':');
-
-  int hour = timeStr.substring(0, separator).toInt();
-  int minute = timeStr.substring(separator + 1).toInt();
-
-  return hour * 100 + minute;
+    return result;
 }
 
 void setNightTimeApi(){
   String response;
   String contentType = "application/json";
 
-  if (!serverWeb.hasArg("e") || !serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
+  if (!serverWeb.hasArg("s") || !serverWeb.hasArg("e")) {
     serverWeb.send(400, "text/plain", "Parametros s e e são obrigatórios");
     return;
   }
   
-  String enabled = serverWeb.arg("e"); // exemplo: "S/N"
   String startTime = serverWeb.arg("s"); // exemplo: "00:00"
   String endTime   = serverWeb.arg("e"); // exemplo: "05:30"
 
-  nightMode = enabled == "S" ? NIGHT_MODE_ON : NIGHT_MODE_OFF;
-  startHourToShow = convertToHHMM(startTime);
-  endHourToShow = convertToHHMM(endTime);
+  nightMode = NIGHT_MODE_ON;
 
-  response = String("{ \"Status\" : \"") + "NightTime change to state " + enabled + ". Time: " + startTime + " and " + endTime + "\"}";
-  serverWeb.send(200, contentType , response);
-  TRACE("%s\n", response.c_str());
-}
+  dadosLedClock.nightMode.start = convertToHHMM(startTime);
+  dadosLedClock.nightMode.end = convertToHHMM(endTime);
 
-void setRainbowClockEffects(){
-  String response;
-  String contentType = "application/json";
+  startHourToShow = dadosLedClock.nightMode.start.hour * 100 + dadosLedClock.nightMode.start.minute;
+  endHourToShow = dadosLedClock.nightMode.end.hour * 100 + dadosLedClock.nightMode.end.minute;
 
-  rainbowClockMode = serverWeb.arg(0) == "ON"? RAINBOW_MODE_ON : RAINBOW_MODE_OFF;
-
-  response = String("{ \"Rainbow clock state\" : \"") + rainbowModeToStr(rainbowClockMode) + "\"}";
+  response = String("{ \"Status\" : \"") + "NightTime change to between [" + startTime + "] and [" + endTime + "]\"}";
 
   serverWeb.send(200, contentType , response);
 
   TRACE("%s\n", response.c_str());
-}
 
-void setRainbowDecoEffects(){
-  String response;
-  String contentType = "application/json";
-
-  rainbowDecoMode = serverWeb.arg(0) == "ON"? RAINBOW_MODE_ON : RAINBOW_MODE_OFF;
-
-  response = String("{ \"Rainbow deco state\" : \"") + rainbowModeToStr(rainbowDecoMode) + "\"}";
-
-  serverWeb.send(200, contentType , response);
-
-  TRACE("%s\n", response.c_str());
+  saveConfig();
 }
 
 void setHourColorApi(){
@@ -544,14 +375,16 @@ void setHourColorApi(){
   String contentType = "application/json";
 
   int i = serverWeb.arg(0).toInt();
-  String r = serverWeb.arg(1);
-  String g = serverWeb.arg(2);
-  String b = serverWeb.arg(3);
-  clockColor[i-1] = getColor(r,g,b);
-  response = String("{ \"Status\" : \"") + "Hour color changed to " + colorToStr(clockColor[i-1]) + " on pos " + i + "\"}";
+  const char *color = serverWeb.arg(1).c_str();
+
+  dadosLedClock.clockColor[i-1] = hexStringToColor(color);
+  response = String("{ \"Status\" : \"") + "Hour color changed to " + color + " on pos " + i + "\"}";
 
   serverWeb.send(200, contentType , response);
+
   TRACE("%s\n", response.c_str());
+
+  saveConfig();
 }
 
 void setDayColorApi(){
@@ -559,16 +392,15 @@ void setDayColorApi(){
   String contentType = "application/json";
 
   int i = serverWeb.arg(0).toInt();
-  String r = serverWeb.arg(1);
-  String g = serverWeb.arg(2);
-  String b = serverWeb.arg(3);
+  const char *color = serverWeb.arg(1).c_str();
 
-  dayColor[i-1] = getColor(r,g,b);
+  dadosLedClock.dayColor[i-1] = hexStringToColor(color);
 
-  response = String("{ \"Status\" : \"") + "Day color changed to " + colorToStr(dayColor[i-1]) + " on pos " + i + "\"}";
+  response = String("{ \"Status\" : \"") + "Day color changed to " + color + " on pos " + i + "\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
+  saveConfig();
 }
 
 void setTempColorApi(){
@@ -576,15 +408,14 @@ void setTempColorApi(){
   String contentType = "application/json";
 
   int i = serverWeb.arg(0).toInt();
-  String r = serverWeb.arg(1);
-  String g = serverWeb.arg(2);
-  String b = serverWeb.arg(3);
+  const char *color = serverWeb.arg(1).c_str();
 
-  tempColor[i-1] = getColor(r,g,b);
-  response = String("{\"Status\" : \"") + "Temperature color changed to " + colorToStr(tempColor[i-1]) + "\"}";
+  dadosLedClock.tempColor[i-1] = hexStringToColor(color);
+  response = String("{\"Status\" : \"") + "Temperature color changed to " + color + "\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
+  saveConfig();  
 }
 
 void setHumidityColorApi(){
@@ -592,15 +423,14 @@ void setHumidityColorApi(){
   String contentType = "application/json";
 
   int i = serverWeb.arg(0).toInt();
-  String r = serverWeb.arg(1);
-  String g = serverWeb.arg(2);
-  String b = serverWeb.arg(3);
+  const char *color = serverWeb.arg(1).c_str();
 
-  humidityColor[i-1] = getColor(r,g,b);
-  response = String("{\"Status\" : \"") + "Humidity color changed to " + colorToStr(humidityColor[i-1]) + "\"}";
+  dadosLedClock.humidityColor[i-1] = hexStringToColor(color);
+  response = String("{\"Status\" : \"") + "Humidity color changed to " + color + "\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
+  saveConfig();  
 }
 
 void setDecoColorApi(){
@@ -608,39 +438,35 @@ void setDecoColorApi(){
   String contentType = "application/json";
 
   int i = serverWeb.arg(0).toInt();
-  String r = serverWeb.arg(1);
-  String g = serverWeb.arg(2);
-  String b = serverWeb.arg(3);
-  clockDecoColor[i - 1] = getColor(r,g,b);
-  response = String("{\"Status\" : \"") + "Decoration color " + (i) + " changed to " + colorToStr(clockDecoColor[i]) + "\"}";
+  const char *color = serverWeb.arg(1).c_str();
+
+  dadosLedClock.decoColor[i - 1] = hexStringToColor(color);
+  response = String("{\"Status\" : \"") + "Decoration color " + (i) + " changed to " + color + "\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
+  saveConfig();
 }
 
 void setDecoColorAllApi(){
   const char* contentType = "application/json";
 
    // Validação básica dos parâmetros
-  if (serverWeb.args() < 4) {
+  if (serverWeb.args() < 2) {
     serverWeb.send(400, contentType, "{\"error\":\"Missing parameters\"}");
     return;
   }
 
   int line = serverWeb.arg(0).toInt();
-  int r = serverWeb.arg(1).toInt();
-  int g = serverWeb.arg(2).toInt();
-  int b = serverWeb.arg(3).toInt();
+  const char *color = serverWeb.arg(1).c_str();
 
   // Define faixa de LEDs
   int idxStart = (line - 1) * 7;
   int idxEnd   = idxStart + 7;
 
-  RGB color = getColor(r,g,b);
-
   // Atualiza LEDs
   for (int i = idxStart; i < idxEnd; i++) {
-    clockDecoColor[i] = color;
+    dadosLedClock.decoColor[i] = hexStringToColor(color);
   }
 
   // Monta resposta sem usar muitas Strings
@@ -648,10 +474,11 @@ void setDecoColorAllApi(){
   snprintf(response, sizeof(response),
            "{\"status\":\"Decoration color line %d changed to %s\"}",
            line,
-           colorToStr(color).c_str());
+           color);
 
   serverWeb.send(200, contentType, response);
   TRACE("%s\n", response);
+  saveConfig();
 }
 
 void getInfoApi(){
@@ -664,78 +491,96 @@ void getInfoApi(){
   TRACE("%s\n", response.c_str());
 }
 
+void getIndex(){
+       if (LittleFS.exists("/index.html")) {
+           File file = LittleFS.open("/index.html", "r");
+           serverWeb.streamFile(file, "text/html");
+           file.close();
+       } else {
+           serverWeb.send(404, "text/plain", "index nao encontrado");
+       }
+}
+
+void getCss(){
+        File file = LittleFS.open("/style.css", "r");
+        serverWeb.streamFile(file, "text/css");
+        file.close();
+}
+
+void getJs(){
+        File file = LittleFS.open("/app.js", "r");
+        serverWeb.streamFile(file, "application/javascript");
+        file.close();
+}
+
 String getConfigClock(){
 
-  String sensorLightValues = "";
+  TRACE("getConfigClock start");
+  DynamicJsonDocument doc(4096);
 
-  for (int i=0; i < numReadings; i++){
-    sensorLightValues += String(readings[i]) + " - ";
-  }
+    TRACE("time");
+  // ===== TIME =====
+  JsonObject objTime = doc.createNestedObject("time");
+  objTime["hour"] = dadosLedClockRuntimeData.time.hour;
+  objTime["minute"] = dadosLedClockRuntimeData.time.minute;
 
-  String clockDecoColorStr = "";
-  for (int i=0; i < LEDDECO_COUNT; i++)
-  {
-    clockDecoColorStr += colorToStr(clockDecoColor[i]) + " - ";
-  }
+    TRACE("date");  
+  // ===== DATE =====  
+  JsonObject objDate = doc.createNestedObject("date");  
+  objDate["day"] = dadosLedClockRuntimeData.date.day;
+  objDate["month"] = dadosLedClockRuntimeData.date.month;
+  objDate["year"] = dadosLedClockRuntimeData.date.year;
 
-  // Time formatado (2 dígitos)
-  char timeStr[9];
-  sprintf(timeStr, "%02d:%02d:%02d", hour, minute, second);
+    TRACE("temp");  
+  // ===== TEMPERATURE =====    
+  doc["temperature"] = dadosLedClockRuntimeData.temperature;
 
-  // Date formatado (2 dígitos)
-  char dateStr[11];
-  sprintf(dateStr, "%02d/%02d/%04d", day, month, year);  
+    TRACE("humd");  
+  // ===== HUMIDITY =====      
+  doc["humidity"] = dadosLedClockRuntimeData.humidity;
 
-   // Night mode (2 dígitos)
-  char startStr[3];
-  char endStr[3];
+  // ===== ARRAYS RGB TO JSON =====
+  auto fillHexColorArray = [](JsonArray arr, uint32_t *data, int size) {
+    for (int i = 0; i < size; i++) {
+      arr.add(data[i]);
+    }
+  };
 
-  sprintf(startStr, "%02d", startHourToShow);
-  sprintf(endStr, "%02d", endHourToShow);
+  TRACE("hour color");  
+  fillHexColorArray(doc.createNestedArray("hourColor"), dadosLedClock.clockColor, 4);
+  TRACE("dayColor");    
+  fillHexColorArray(doc.createNestedArray("dayColor"), dadosLedClock.dayColor, 4);
+  TRACE("tempColor");    
+  fillHexColorArray(doc.createNestedArray("tempColor"), dadosLedClock.tempColor, 4);
+  TRACE("humidityColor");    
+  fillHexColorArray(doc.createNestedArray("humidityColor"), dadosLedClock.humidityColor, 4);
+  TRACE("decoColor");    
+  fillHexColorArray(doc.createNestedArray("decoColor"), dadosLedClock.decoColor, 14);
 
-  return String("{") +
+  // ===== BRIGHTNESS MODE =====
+  JsonObject bm = doc.createNestedObject("brightnessMode");
+  bm["clock"] = dadosLedClock.brightnessMode.clockMode;
+  bm["deco"] = dadosLedClock.brightnessMode.decoMode;
+  bm["brightValue"] = dadosLedClock.brightnessMode.brightValue;
 
-         String("\"time\": \"") + timeStr + "\"," +
-         String("\"date\": \"") + dateStr + "\"," +
-         String("\"temperature\": \"") + String(temperature) + " ºC" + "\"," +
-         String("\"humidity\": \"") + String(humidity) + " %" + "\"," +
-         
-         String("\"brightnessSensorMap\": ") + brightnessSensor + "," +
+  // ===== NIGHT MODE =====
+  JsonObject nm = doc.createNestedObject("nightMode");
+  nm["enable"] = dadosLedClock.nightMode.enabled;
 
-         String("\"clockFirstDayColor\": \"#") + colorToStr(dayColor[0]) + "\"," +
-         String("\"clockSecondDayColor\": \"#") + colorToStr(dayColor[1]) + "\"," +
-         String("\"clockFirstMonthColor\": \"#") + colorToStr(dayColor[2]) + "\"," +
-         String("\"clockSecodMonthColor\": \"#") + colorToStr(dayColor[3]) + "\"," +
-         
-         String("\"clockFirstHourColor\": \"#") + colorToStr(clockColor[0]) + "\"," +
-         String("\"clockSecondHourColor\": \"#") + colorToStr(clockColor[1]) + "\"," +
-         String("\"clockFirstMinuteColor\": \"#") + colorToStr(clockColor[2]) + "\"," +
-         String("\"clockSecodMinuteColor\": \"#") + colorToStr(clockColor[3]) + "\"," +
-         
-         String("\"tempFirstValueColor\": \"#") + colorToStr(tempColor[0]) + "\"," +
-         String("\"tempSecondValueColor\": \"#") + colorToStr(tempColor[1]) + "\"," +
-         String("\"tempFirstSymbolColor\": \"#") + colorToStr(tempColor[2]) + "\"," +
-         String("\"tempSecondSymbolColor\": \"#") + colorToStr(tempColor[3]) + "\"," +
-         
-         String("\"humidityFirstSymbolColor\": \"#") + colorToStr(humidityColor[0]) + "\"," +
-         String("\"humiditySecondSymbolColor\": \"#") + colorToStr(humidityColor[1]) + "\"," +         
-         String("\"humidityFirstValueColor\": \"#") + colorToStr(humidityColor[2]) + "\"," +
-         String("\"humiditySecondValueColor\": \"#") + colorToStr(humidityColor[3]) + "\"," +
-         
-         String("\"decoColor\": \"") + clockDecoColorStr + "\"," +
-         
-         String("\"clockBrightnessMode\": \"") + brightnessModeToStr(brightnessClockMode) + "\"," +
-         String("\"decoBrightnessMode\": \"") + brightnessModeToStr(brightnessDecoMode) + "\"," +
-         
-         String("\"rainbowModeClock\": \"") + rainbowModeToStr(rainbowClockMode) + "\"," +
-         String("\"rainbowModeDeco\": \"") + rainbowModeToStr(rainbowDecoMode) + "\"," +         
-         
-         String("\"urlTemperature\": \"") + urlTemp + "\"," +
-         
-         String("\"nightModeStart\": \"") + startStr + "\"," +
-         String("\"nightModeEnd\": \"") + endStr + "\"" +
-         
-         String("}");
+  JsonObject objStart = nm.createNestedObject("start");
+  objStart["hour"] = dadosLedClock.nightMode.start.hour;
+  objStart["minute"] = dadosLedClock.nightMode.start.minute;
+
+  JsonObject objEnd = nm.createNestedObject("end");
+  objEnd["hour"] = dadosLedClock.nightMode.end.hour;
+  objEnd["minute"] = dadosLedClock.nightMode.end.minute;  
+
+  String output;
+  serializeJson(doc, output);
+
+  TRACE("getConfigClock end");  
+
+  return output;
 }
 
 void setDecoBrightnessStateApi(){
@@ -746,19 +591,47 @@ void setDecoBrightnessStateApi(){
   state.toUpperCase();
 
   if (state == "OFF"){
-    brightnessDecoMode = BRIGHT_OFF;
+    dadosLedClock.brightnessMode.decoMode = BRIGHT_OFF;
   }
   else if(state == "ON"){
-    brightnessDecoMode = BRIGHT_ON;
+    dadosLedClock.brightnessMode.decoMode = BRIGHT_ON;
   }
   else{
-    brightnessDecoMode = BRIGHT_AUTO;
+    dadosLedClock.brightnessMode.decoMode = BRIGHT_AUTO;
   }
 
-  response = String("{\"Status\" : \"") + "State decoration bright changed to " + brightnessModeToStr(brightnessDecoMode) + "\"}";
+  response = String("{\"Status\" : \"") + "State decoration bright changed to " + brightnessModeToStr(dadosLedClock.brightnessMode.decoMode) + "\"}";
 
   serverWeb.send(200, contentType , response);
   TRACE("%s\n", response.c_str());
+  saveConfig();  
+}
+
+void readThebrightnessValue(){
+    //Record a reading from the light sensor and add it to the array
+    int valueReadFromSensor = analogRead(A0);
+
+    TRACE("Light sensor value = %03d\n", valueReadFromSensor);
+
+    dadosLedClock.brightnessMode.brightnessSensorMap[currentReadIndexLdr] = valueReadFromSensor;
+    currentReadIndexLdr = currentReadIndexLdr + 1;
+
+    if (currentReadIndexLdr >= NUM_READINGS_LRD) {
+      currentReadIndexLdr = 0;
+    }
+
+    //now work out the sum of all the values in the array
+    int sumBrightness = 0;
+    for (int i=0; i < NUM_READINGS_LRD; i++) {
+          sumBrightness += dadosLedClock.brightnessMode.brightnessSensorMap[i];
+    }
+
+    // and calculate the average:
+    int lightSensorValue = sumBrightness / NUM_READINGS_LRD;
+    
+    dadosLedClock.brightnessMode.brightValue = map(lightSensorValue, 0, 1023, 200, 1);
+
+    TRACE("Mapped brightness value = %04d\n", dadosLedClock.brightnessMode.brightValue);
 }
 
 void readTheTime(){
@@ -766,27 +639,27 @@ void readTheTime(){
   time_t now = time(nullptr);
   struct tm *ptm = localtime(&now);
 
-  hour = ptm->tm_hour;
-  minute = ptm->tm_min;
-  second = ptm->tm_sec;
-  day = ptm->tm_mday; 
-  month = ptm->tm_mon + 1; 
-  year = ptm->tm_year + 1900;
+  dadosLedClockRuntimeData.time.hour = ptm->tm_hour;
+  dadosLedClockRuntimeData.time.minute = ptm->tm_min;
+  //second = ptm->tm_sec;
+  dadosLedClockRuntimeData.date.day = ptm->tm_mday; 
+  dadosLedClockRuntimeData.date.month = ptm->tm_mon + 1; 
+  dadosLedClockRuntimeData.date.year = ptm->tm_year + 1900;
 
-  TRACE("Data: %02d/%02d/%04d  | Hora: %02d:%02d:%02d\n", day, month, year, hour, minute, second);
+  TRACE("Data: %02d/%02d/%04d  | Hora: %02d:%02d\n", dadosLedClockRuntimeData.date.day, dadosLedClockRuntimeData.date.month, dadosLedClockRuntimeData.date.year, dadosLedClockRuntimeData.time.hour, dadosLedClockRuntimeData.time.minute);
 }
 
 void readTheTemperature(){
     WiFiClient client;
     HTTPClient http;
 
-    bool lerTemperatura = temperature == -1 || minute % 59 == 0;
+    bool lerTemperatura = dadosLedClockRuntimeData.temperature == -1 || dadosLedClockRuntimeData.time.minute % 59 == 0;
 
     if(!lerTemperatura){
         return;
     }
 
-    temperature = 0;
+    dadosLedClockRuntimeData.temperature = 0;
 
     if (http.begin(client, urlTemp)) {
 
@@ -806,9 +679,10 @@ void readTheTemperature(){
           }
 
           JSONVar keys = myObject.keys();
-          temperature = (int)myObject["temp"];
-          humidity = (int)myObject["humidity"];
-          TRACE("Temperature value read: %03d\n", temperature);
+          dadosLedClockRuntimeData.temperature = (int)myObject["temp"];
+          dadosLedClockRuntimeData.humidity = (int)myObject["humidity"];
+          TRACE("Temperature value read: %03d\n", dadosLedClockRuntimeData.temperature);
+          TRACE("Humididy value read: %03d\n", dadosLedClockRuntimeData.humidity);
         }
       } else {
         TRACE("Error reading temperature\n");
@@ -820,96 +694,90 @@ void readTheTemperature(){
     }
 }
 
-void displayInfo(String texto, String value){
+void displayInfo(){
     // Clear the buffer
   display.clearDisplay();
 
-  display.setTextSize(2); // Draw 2X-scale text
+  display.setTextSize(2);
   display.setCursor(0,0) ;
   display.println(" Led Clock");
+  display.println(localIp);  
 
-  display.setTextSize(1); // Draw 2X-scale text  
-  display.setCursor(0,16) ;  
-  display.println("Wifi: " + localIp);  
-  display.display();
+  //char dateStr[17];
+  //sprintf(dateStr, "Date: %02d/%02d/%04d", dadosLedClockRuntimeData.date.day, dadosLedClockRuntimeData.date.month, dadosLedClockRuntimeData.date.year);  //Date: 10/10/2026
+  //display.println(dateStr);
 
-  display.setTextSize(2); // Draw 2X-scale text    
-  display.setCursor(0,24) ;    
-  display.println(texto);
-  display.setTextSize(2); // Draw 2X-scale text      
-  display.setCursor(0,40) ;    
-  display.println(value);
+  //char timeStr[15];
+  //sprintf(timeStr, "Time: %02d:%02d", dadosLedClockRuntimeData.time.hour, dadosLedClockRuntimeData.time.minute); // Time: 23:45
+  //display.println(timeStr);
+
+  //char tempStr[11];
+  //sprintf(tempStr, "Temp: %02d C", dadosLedClockRuntimeData.temperature);  // Temp: 34 C
+  //display.println(tempStr);
+
+  //char humidStr[15];
+  //sprintf(humidStr, "Humidity: %02d %%", dadosLedClockRuntimeData.humidity);  // Humidity: 99 %
+  //display.println(humidStr);
+
+  //char sensorStr[19];
+  //sprintf(sensorStr, "Bright Sensor: %02d", dadosLedClock.brightnessMode.brightValue);  // Bright Sensor: 255
+  //display.println(sensorStr);  
+
   display.display();
  }
 
 void displayTheDay(){
   int tensDay, unitsDay, tensMonth, unitsMonth;
 
-  getDigits(day, tensDay, unitsDay);  
-  getDigits(month, tensMonth, unitsMonth);  
+  getDigits(dadosLedClockRuntimeData.date.day, tensDay, unitsDay);  
+  getDigits(dadosLedClockRuntimeData.date.month, tensMonth, unitsMonth);  
 
   stripClock.clear(); //clear the clock face
-  
-  char dateStr[11];
-  sprintf(dateStr, "%02d/%02d/%04d", day, month, year);  
-  displayInfo("Date", dateStr);  
 
-  displayNumber(tensDay, IDX_FIRST_DIGIT, colorToInt(dayColor[0]));
-  displayNumber(unitsDay, IDX_SECOND_DIGIT, colorToInt(dayColor[1]));  
-  displayNumber(tensMonth, IDX_THIRD_DIGIT, colorToInt(dayColor[2]));  
-  displayNumber(unitsMonth, IDX_FOURTH_DIGIT, colorToInt(dayColor[3])); 
+  displayNumber(tensDay, IDX_FIRST_DIGIT, dadosLedClock.dayColor[0]);
+  displayNumber(unitsDay, IDX_SECOND_DIGIT, dadosLedClock.dayColor[1]);  
+  displayNumber(tensMonth, IDX_THIRD_DIGIT, dadosLedClock.dayColor[2]);  
+  displayNumber(unitsMonth, IDX_FOURTH_DIGIT, dadosLedClock.dayColor[3]); 
 }
 
 void displayTheTime(){
   int tensHour, unitsHour, tensMinute, unitsMinute;
 
-  getDigits(minute, tensMinute, unitsMinute);  
-  getDigits(hour, tensHour, unitsHour);  
+  getDigits(dadosLedClockRuntimeData.time.minute, tensMinute, unitsMinute);  
+  getDigits(dadosLedClockRuntimeData.time.hour, tensHour, unitsHour);  
 
   stripClock.clear(); //clear the clock face
   
-  char timeStr[9];
-  sprintf(timeStr, "%02d:%02d:%02d", hour, minute, second);
-  displayInfo("Time", timeStr);
-
-  displayNumber(tensHour, IDX_FIRST_DIGIT, colorToInt(clockColor[0]));
-  displayNumber(unitsHour, IDX_SECOND_DIGIT, colorToInt(clockColor[1]));  
-  displayNumber(tensMinute, IDX_THIRD_DIGIT, colorToInt(clockColor[2]));  
-  displayNumber(unitsMinute, IDX_FOURTH_DIGIT, colorToInt(clockColor[3])); 
+  displayNumber(tensHour, IDX_FIRST_DIGIT, dadosLedClock.clockColor[0]);
+  displayNumber(unitsHour, IDX_SECOND_DIGIT, dadosLedClock.clockColor[1]);  
+  displayNumber(tensMinute, IDX_THIRD_DIGIT, dadosLedClock.clockColor[2]);  
+  displayNumber(unitsMinute, IDX_FOURTH_DIGIT, dadosLedClock.clockColor[3]); 
 }
 
 void displayTheHumidity(){
 
   int tens, units;
 
-  getDigits(humidity, tens, units);
+  getDigits(dadosLedClockRuntimeData.humidity, tens, units);
   stripClock.clear();
 
-  displayInfo("Humidity", String(humidity) + "%");
-
-  letterH(IDX_FIRST_DIGIT, colorToInt(humidityColor[0]));
-  letterH(IDX_SECOND_DIGIT, colorToInt(humidityColor[1]));
-  displayNumber(tens, IDX_THIRD_DIGIT, colorToInt(humidityColor[2]));  
-  displayNumber(units, IDX_FOURTH_DIGIT, colorToInt(humidityColor[3]));
+  letterH(IDX_FIRST_DIGIT, dadosLedClock.humidityColor[0]);
+  letterH(IDX_SECOND_DIGIT, dadosLedClock.humidityColor[1]);
+  displayNumber(tens, IDX_THIRD_DIGIT, dadosLedClock.humidityColor[2]);  
+  displayNumber(units, IDX_FOURTH_DIGIT, dadosLedClock.humidityColor[3]);
 }
 
 void displayTheTemperature(){
 
   int tens, units;
 
-  getDigits(temperature, tens, units);  
+  getDigits(dadosLedClockRuntimeData.temperature, tens, units);  
   stripClock.clear();
 
-  displayInfo("Temp.", String(temperature) + " C");
-
-  displayNumber(tens, IDX_FIRST_DIGIT, colorToInt(tempColor[0]));
-  displayNumber(units, IDX_SECOND_DIGIT, colorToInt(tempColor[1]));
-  symbolDegrees(IDX_THIRD_DIGIT, colorToInt(tempColor[2]));  
-  letterC(IDX_FOURTH_DIGIT, colorToInt(tempColor[3]));
-}
-
-uint32_t colorToInt(RGB color){
-  return stripClock.Color(color.g, color.r, color.b);
+  displayNumber(tens, IDX_FIRST_DIGIT, dadosLedClock.tempColor[0]);
+  displayNumber(units, IDX_SECOND_DIGIT, dadosLedClock.tempColor[1]);
+  symbolDegrees(IDX_THIRD_DIGIT, dadosLedClock.tempColor[2]);  
+  letterC(IDX_FOURTH_DIGIT, dadosLedClock.tempColor[3]);
 }
 
 void getDigits(int value, int &tens, int &units) {
@@ -917,17 +785,6 @@ void getDigits(int value, int &tens, int &units) {
 
   tens = value / 10;
   units = value % 10;
-}
-
-String rainbowModeToStr(int mode){
-  switch(mode){
-    case 0:
-      return "0 - off";
-    case 1:
-      return "1 - on";
-  }
-
-  return "invalid";
 }
 
 String brightnessModeToStr(int mode){
@@ -1040,4 +897,165 @@ void letterH(int offset, uint32_t colour){
 
 void symbolDegrees(int offset, uint32_t colour){
   stripClock.fill(colour, (0 + offset), 36);
+}
+
+// --------------------------------------------------------------------------------
+// ----------------------------- SETUP FUNCION ------------------------------------
+// --------------------------------------------------------------------------------
+
+void setup() {
+
+  Serial.begin(9600);
+  // Inicializa I2C nos pinos personalizados
+  Wire.begin(OLED_SDA, OLED_SCL);
+
+  Serial.setDebugOutput(false);
+
+  // wait for serial monitor to start completely.
+  delay(3000);
+   
+  TRACE("\nHELLO !\n");
+
+  EEPROM.begin(sizeof(Config));
+
+  if(!loadConfig())
+  {
+        Serial.println("Primeira execução ou versão inválida.");
+        loadConfigurationDefault();
+  }
+
+  Serial.println("Configuração carregada.");  
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+  }
+
+  // Show initial display buffer contents on the screen the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000);
+  
+  display.setTextColor(SSD1306_WHITE);  
+  
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, passPhrase);
+  WiFi.hostname("WIFI-Clock");
+
+  static WiFiEventHandler onConnectedHandler = WiFi.onStationModeConnected(onConnected);
+  static WiFiEventHandler onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
+
+  TRACE("\n");
+  
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    TRACE(".");
+  }
+   
+   configTime(-3 * 3600, 0, "br.pool.ntp.org");
+
+   LittleFS.begin();
+   timeClient.begin();
+
+   serverWeb.on("/", HTTP_GET, getIndex);
+   serverWeb.on("/style.css", HTTP_GET, getCss);
+   serverWeb.on("/app.js", HTTP_GET, getJs);
+   serverWeb.on("/getInfo", getInfoApi);
+   serverWeb.on("/setHourColor", setHourColorApi);
+   serverWeb.on("/setDayColor", setDayColorApi);
+   serverWeb.on("/setTempColor", setTempColorApi);
+   serverWeb.on("/setHumidityColor", setHumidityColorApi);    
+   serverWeb.on("/setDecoColor", setDecoColorApi);
+   serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
+   serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
+   serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
+   serverWeb.on("/setNightTime", setNightTimeApi);
+        
+   // enable CORS header in webserver results
+   serverWeb.enableCORS(true);
+   serverWeb.begin();
+    
+   stripClock.begin();
+   stripClock.fill(BRANCO);
+   stripClock.show();
+   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
+    
+   stripDeco.begin();
+   stripDeco.fill(BRANCO);
+   stripDeco.show();
+   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
+    
+   timeToChangeMode = 0;
+}
+
+// --------------------------------------------------------------------------------
+// ------------------------------ LOOP FUNCION ------------------------------------
+// --------------------------------------------------------------------------------
+void loop() {
+
+  if (!WiFi.isConnected()) {
+    TRACE("waiting for wifi ...\n");
+    delay(1000);
+    return;
+  }
+
+  serverWeb.handleClient();
+
+  uint32_t now = millis();
+
+  if (now - lastSecondMs >= 1000) { // ── Lógica de 1 segundo
+    lastSecondMs = now;
+
+    timeToChangeMode++;
+
+    switch (timeToChangeMode)
+    {
+      case TIME_TO_DISPLAY_CLOCK:
+        readTheTime();
+        displayTheTime();    
+        break;
+      case TIME_TO_DISPLAY_DAY:
+        displayTheDay();
+        break;
+      case TIME_TO_DISPLAY_TEMPERATURE:
+        readTheTemperature();
+        displayTheTemperature();    
+        break;
+      case TIME_TO_DISPLAY_HUMIDITY:
+        displayTheHumidity();
+        break;                  
+    }
+
+    if (timeToChangeMode >= 60) {
+      timeToChangeMode = 0;
+    }
+
+    // Brilho
+    switch (dadosLedClock.brightnessMode.decoMode) {
+      case BRIGHT_OFF:  stripDeco.setBrightness(0); break;
+      case BRIGHT_ON:   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE); break;
+      case BRIGHT_AUTO: readThebrightnessValue(); stripDeco.setBrightness(dadosLedClock.brightnessMode.brightValue); break;
+    }
+    switch (dadosLedClock.brightnessMode.clockMode) {
+      case BRIGHT_OFF:  stripClock.setBrightness(0); break;
+      case BRIGHT_ON:   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE); break;
+      case BRIGHT_AUTO: readThebrightnessValue(); stripClock.setBrightness(dadosLedClock.brightnessMode.brightValue); break;
+    }
+
+    // Deco LEDs
+   for(int i=0; i<LEDDECO_COUNT; i++) {
+       stripDeco.setPixelColor(i, dadosLedClock.decoColor[i]);
+   }
+
+    // Modo noturno — força apagado
+    if (nightModeEnable()) {
+      stripDeco.setBrightness(0);
+      stripClock.setBrightness(0);
+    }
+
+    stripClock.show();
+    stripDeco.show();
+
+    displayInfo();
+  }
 }

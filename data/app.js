@@ -1,22 +1,24 @@
 /* ── Helpers ─────────────────────────────────────────── */
-var zeroPad = function (num, places) { return String(num).padStart(places, '0'); };
+const baseUrl = window.location.origin;
 
-function componentToHex(c) {
-	var h = c.toString(16);
-	return h.length === 1 ? '0' + h : h;
+function colorIntToHexString(color) {
+    return "#" + color.toString(16).padStart(6, "0").toUpperCase();
 }
 
-function rgbToHex(r, g, b) {
-	return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
-}
-
-function hexToRgb(hex) {
-	var res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return res ? {
-		r: parseInt(res[1], 16),
-		g: parseInt(res[2], 16),
-		b: parseInt(res[3], 16)
-	} : null;
+function loadDataMock() {
+	return {
+    "time": { "hour": 9, "minute": 23 },
+    "date": { "day": 11, "month": 6, "year": 2026 },
+    "temperature": 21,
+    "humidity": 46,
+    "hourColor": [255,255,16777215,16777215],
+    "dayColor": [65280,65280,16777215,16777215],
+    "tempColor": [16711680,16711680,16777215,16777215],
+    "humidityColor": [16776960,16776960,16777215,16777215],
+    "decoColor": [16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215],
+    "brightnessMode": { "clock": 1, "deco": 1, "brightValue": 200 },
+    "nightMode": {"enable": 1, "start": { "hour": 0, "minute": 0 }, "end": { "hour": 5, "minute": 30} }
+	}
 }
 
 /* ── Loading indicator ───────────────────────────────── */
@@ -25,8 +27,7 @@ var pendingRequests = 0;
 function setLoading(active) {
 	pendingRequests += active ? 1 : -1;
 	if (pendingRequests < 0) { pendingRequests = 0; }
-	document.getElementById('loadingIndicator').style.display =
-		pendingRequests > 0 ? 'inline-flex' : 'none';
+	document.getElementById('loadingIndicator').style.display = pendingRequests > 0 ? 'inline-flex' : 'none';
 }
 
 /* ── GET helper ──────────────────────────────────────── */
@@ -57,42 +58,38 @@ function get(url, callback, errorCallback) {
 
 /* ── API wrappers ────────────────────────────────────── */
 function setColorToDigit(event, api, digit) {
-	var cor = hexToRgb(event.target.value);
-	var url = 'http://192.168.100.7/' + api + '?p=' + digit + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
+	var cor = event.target.value.replace("#", "");
+	var url = `${baseUrl}/${api}?p=${digit}&c=${cor}`;
 	get(url);
 }
 
 function setBrightnessState(event, api, mode) {
-	get('http://192.168.100.7/' + api + '?p=' + mode);
-}
-
-function setRainbowState(event,api, mode) {
-	get('http://192.168.100.7/'+ api + '?p=' + mode);
+	get(`${baseUrl}/${api}?p=${mode}`);
 }
 
 function setNightTime(event) {
 	var start = document.getElementById('nightModeStart').value;
 	var end   = document.getElementById('nightModeEnd').value;
-	get('http://192.168.100.7/setNightTime?s=' + start + '&e=' + end);
+	get(`${baseUrl}/setNightTime?s=${start}&e=${end}`);
 }
 
 function applyDecoColorAll(event, line) {
-	var hex = document.getElementById('bulkColorLine' + line).value;
-	var cor = hexToRgb(hex);
-	var url = 'http://192.168.100.7/setDecoColorAll?l=' + line + '&r=' + cor.r + '&g=' + cor.g + '&b=' + cor.b;
+	var cor = document.getElementById('bulkColorLine' + line).value;
+
+	var url = `${baseUrl}/setDecoColorAll?l=${line}&c=${cor.replace("#", "")}`;
+
 	get(url);
 
     var idxStart = (line - 1) * 7;
     var idxEnd   = idxStart + 7;
-	var corStr = '#('+ cor.r + ',' + cor.g + ',' + cor.b + ')';
 	for (var i = idxStart; i < idxEnd; i++) {
-		updateUiColor('favDLC' + (i + 1), corStr);
+		updateUiColorHex('favDLC' + (i + 1), cor);
 	}	
 }
 
 /* ── Fetch latest data from device ──────────────────── */
 function loadData() {
-	get('http://192.168.100.7/getInfo', function (d) {
+	get(`${baseUrl}/getInfo`, function (d) {
 		setConn(true);
 		updateUi(d);
 	}, function () {
@@ -101,36 +98,8 @@ function loadData() {
 }
 
 /* ── Mock data (offline preview / development) ───────── */
-function loadDataMock() {
-	var d = {
-		brightnessSensorMap: '142',
-		temperature:         '28.5°C',
-		humidity:            '75%',
-		time:                '14:35',
-		date:                '01/04/2026', 
-		urlTemperature:      'http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name&key=3b983af0',
-		clockFirstHourColor:   '(58,132,0)',
-		clockSecondHourColor:  '(58,132,0)',
-		clockFirstMinuteColor: '(221,0,0)',
-		clockSecodMinuteColor: '(221,0,0)',
-		clockFirstDayColor:    '(58,0,57)',
-		clockSecondDayColor:   '(58,0,57)',
-		clockFirstMonthColor:  '(221,255,0)',
-		clockSecodMonthColor:  '(221,255,0)',
-		tempFirstValueColor:   '(0, 132,57)',
-		tempSecondValueColor:  '(0,132,57)',
-		tempFirstSymbolColor:  '(221,0,255)',
-		tempSecondSymbolColor: '(221,0,255)',
-		humidityFirstSymbolColor:  '(0,0,57)',
-		humiditySecondSymbolColor: '(0,0,57)',		
-		humidityFirstValueColor:   '(221,0,125)',
-		humiditySecondValueColor:  '(221,125,0)',		
-		clockBrightnessMode: '1',
-		decoBrightnessMode:  '2',
-		rainbowModeClock:    '0',
-		rainbowModeDeco:     '0',		
-		decoColor: '(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,255,255)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)-(255,0,0)'
-	};
+function applyDataMock() {
+	var d = loadDataMock();
 	setConn(true);
 	updateUi(d);
 }
@@ -150,9 +119,12 @@ function setConn(ok) {
 	setControlsEnabled(ok);
 }
 
-function updateUiColor(id, valueStr) {
-	var x   = valueStr.replace(/[()#]/g, '').split(',');
-	var hex = rgbToHex(parseInt(x[0]), parseInt(x[1]), parseInt(x[2]));
+function updateUiColorHex(id, cor) {
+	document.getElementById(id).value = cor;
+}
+
+function updateUiColorInt(id, cor) {
+	var hex = colorIntToHexString(cor);
 	document.getElementById(id).value = hex;
 }
 
@@ -164,65 +136,52 @@ function changeBrightState(ids, valor) {
 		document.getElementById(id).classList.add('btn-outline-secondary');
 	});
 	var target = null;
-	if (valor === '0') { target = ids[1]; }  // OFF
-	if (valor === '1') { target = ids[0]; }  // ON
-	if (valor === '2') { target = ids[2]; }  // AUTO
+	if (valor === 0) { target = ids[1]; }  // OFF
+	if (valor === 1) { target = ids[0]; }  // ON
+	if (valor === 2) { target = ids[2]; }  // AUTO
 	if (target) {
 		document.getElementById(target).classList.remove('btn-outline-secondary');
 		document.getElementById(target).classList.add('btn-success');
 	}
 }
 
-/* active/inactive toggle for 2-button groups (ON / OFF) */
-function changeRainbowState(ids, valor) {
-	ids.forEach(function (id) {
-		document.getElementById(id).classList.remove('btn-success');
-		document.getElementById(id).classList.add('btn-outline-secondary');
-	});
-	var target = valor === '1' ? ids[0] : ids[1];
-	document.getElementById(target).classList.remove('btn-outline-secondary');
-	document.getElementById(target).classList.add('btn-success');
-}
-
 /* ── Update full UI from API response ────────────────── */
 function updateUi(d) {
-	document.getElementById('brightnessSensorMap').innerHTML = d['brightnessSensorMap'];
-	document.getElementById('temperature').innerHTML         = d['temperature'];
-	document.getElementById('humidity').innerHTML            = d['humidity'];	
-	document.getElementById('time').innerHTML                = d['time'];
-	document.getElementById('date').innerHTML                = d['date'];
-	document.getElementById('urlTemperature').value          = d['urlTemperature'];
+	document.getElementById('brightnessSensorMap').innerHTML = d['brightnessMode']['brightValue'];
+	document.getElementById('temperature').innerHTML         = d['temperature'] + ' °C';
+	document.getElementById('humidity').innerHTML            = d['humidity'] + ' %';	
+	document.getElementById('time').innerHTML                = d['time']['hour'].toString().padStart(2, '0') + ' : ' + d['time']['minute'].toString().padStart(2, '0');
+	document.getElementById('date').innerHTML                = d['date']['day'].toString().padStart(2, '0') + ' / ' + d['date']['month'].toString().padStart(2, '0') + ' / ' + d['date']['year'].toString().padStart(4, '0');
 
-	updateUiColor('clockFirstHourColor',    d['clockFirstHourColor']);
-	updateUiColor('clockSecondHourColor',   d['clockSecondHourColor']);
-	updateUiColor('clockFirstMinuteColor',  d['clockFirstMinuteColor']);
-	updateUiColor('clockSecodMinuteColor',  d['clockSecodMinuteColor']);
+	updateUiColorInt('clockFirstHourColor',    d['hourColor'][0]);
+	updateUiColorInt('clockSecondHourColor',   d['hourColor'][1]);
+	updateUiColorInt('clockFirstMinuteColor',  d['hourColor'][2]);
+	updateUiColorInt('clockSecodMinuteColor',  d['hourColor'][3]);
 
-	updateUiColor('clockFirstDayColor',     d['clockFirstDayColor']);
-	updateUiColor('clockSecondDayColor',    d['clockSecondDayColor']);
-	updateUiColor('clockFirstMonthColor',   d['clockFirstMonthColor']);
-	updateUiColor('clockSecodMonthColor',   d['clockSecodMonthColor']);
+	updateUiColorInt('clockFirstDayColor',     d['dayColor'][0]);
+	updateUiColorInt('clockSecondDayColor',    d['dayColor'][1]);
+	updateUiColorInt('clockFirstMonthColor',   d['dayColor'][2]);
+	updateUiColorInt('clockSecodMonthColor',   d['dayColor'][3]);
 
-	updateUiColor('tempFirstValueColor',    d['tempFirstValueColor']);
-	updateUiColor('tempSecondValueColor',   d['tempSecondValueColor']);
-	updateUiColor('tempFirstSymbolColor',   d['tempFirstSymbolColor']);
-	updateUiColor('tempSecondSymbolColor',  d['tempSecondSymbolColor']);
+	updateUiColorInt('tempFirstValueColor',    d['tempColor'][0]);
+	updateUiColorInt('tempSecondValueColor',   d['tempColor'][1]);
+	updateUiColorInt('tempFirstSymbolColor',   d['tempColor'][2]);
+	updateUiColorInt('tempSecondSymbolColor',  d['tempColor'][3]);
 
-	updateUiColor('humidityFirstValueColor',    d['humidityFirstValueColor']);
-	updateUiColor('humiditySecondValueColor',   d['humiditySecondValueColor']);
-	updateUiColor('humidityFirstSymbolColor',   d['humidityFirstSymbolColor']);
-	updateUiColor('humiditySecondSymbolColor',  d['humiditySecondSymbolColor']);
+	updateUiColorInt('humidityFirstValueColor',    d['humidityColor'][0]);
+	updateUiColorInt('humiditySecondValueColor',   d['humidityColor'][1]);
+	updateUiColorInt('humidityFirstSymbolColor',   d['humidityColor'][2]);
+	updateUiColorInt('humiditySecondSymbolColor',  d['humidityColor'][3]);
 
-	changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], d['clockBrightnessMode'][0]);
-	changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], d['decoBrightnessMode'][0]);
+	changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], d['brightnessMode']['clock']);
+	changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], d['brightnessMode']['deco']);
 
-	changeRainbowState(['idERCOn', 'idERCOff'], d['rainbowModeClock'][0]);
-	changeRainbowState(['idERDOn', 'idERDOff'], d['rainbowModeDeco'][0]);	
-
-	var decoColors = d['decoColor'].replaceAll(' ', '').split('-');
 	for (var i = 0; i < 14; i++) {
-		updateUiColor('favDLC' + (i + 1), decoColors[i]);
+		updateUiColorInt('favDLC' + (i + 1), d['decoColor'][i]);
 	}
+
+	document.getElementById('nightModeStart').value = d['nightMode']['start']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['start']['minute'].toString().padStart(2, '0');
+	document.getElementById('nightModeEnd').value = d['nightMode']['end']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['end']['minute'].toString().padStart(2, '0');
 }
 
 /* ── Register all event listeners (once on startup) ─── */
@@ -274,15 +233,7 @@ function bindEvents() {
 	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0'); });
 	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2'); });
 
-	// Rainbow clock
-	document.querySelector('#idERCOn') .addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsClock', 'ON');  changeRainbowState(['idERCOn', 'idERCOff'], '1'); });
-	document.querySelector('#idERCOff').addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsClock','OFF'); changeRainbowState(['idERCOn', 'idERCOff'], '0'); });
-
-	// Rainbow deco
-	document.querySelector('#idERDOn') .addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsDeco', 'ON');  changeRainbowState(['idERDOn', 'idERDOff'], '1'); });
-	document.querySelector('#idERDOff').addEventListener('click', function (e) { setRainbowState(e, 'setRainbowEffectsDeco','OFF'); changeRainbowState(['idERDOn', 'idERDOff'], '0'); });	
-	
-	// Night mode
+    // Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });
 }
 
