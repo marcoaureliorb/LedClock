@@ -73,6 +73,16 @@ function setNightTime(event) {
 	get(`${baseUrl}/setNightTime?s=${start}&e=${end}`);
 }
 
+function setAlarm(event) {
+	var enable = document.getElementById('alarm_enable').checked;
+	var start = document.getElementById('alarm_time').value;
+
+	var hour = start.substring(0,2);
+	var minute = start.substring(3);
+
+	get(`${baseUrl}/setAlarm?e=${enable === true ? 1 : 0}&h=${hour}&m=${minute}`);
+}
+
 function applyDecoColorAll(event, line) {
 	var cor = document.getElementById('bulkColorLine' + line).value;
 
@@ -235,6 +245,9 @@ function bindEvents() {
 
     // Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });
+
+    // Alarm 
+	document.querySelector('#btnAlarm').addEventListener('click', function (e) { setAlarm(e); });	
 }
 
 /* ── Entry point ─────────────────────────────────────── */
