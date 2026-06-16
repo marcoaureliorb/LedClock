@@ -17,7 +17,9 @@ function loadDataMock() {
     "humidityColor": [16776960,16776960,16777215,16777215],
     "decoColor": [16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215],
     "brightnessMode": { "clock": 1, "deco": 1, "brightValue": 200 },
-    "nightMode": {"enable": 1, "start": { "hour": 0, "minute": 0 }, "end": { "hour": 5, "minute": 30} }
+    "nightMode": {"enable": 1, "start": { "hour": 0, "minute": 0 }, "end": { "hour": 5, "minute": 30} },
+	"alarm": {"enable": 0, "hour": 0, "minute": 0 },
+	"umbrellaAlert": 0
 	}
 }
 
@@ -68,19 +70,18 @@ function setBrightnessState(event, api, mode) {
 }
 
 function setNightTime(event) {
+	var enable = document.getElementById('nightModeEnable').checked === true ? 1 : 0;
 	var start = document.getElementById('nightModeStart').value;
 	var end   = document.getElementById('nightModeEnd').value;
-	get(`${baseUrl}/setNightTime?s=${start}&e=${end}`);
+
+	get(`${baseUrl}/setNightTime?enable=${enable}&start=${start}&end=${end}`);
 }
 
 function setAlarm(event) {
-	var enable = document.getElementById('alarm_enable').checked;
-	var start = document.getElementById('alarm_time').value;
+	var enable = document.getElementById('alarmEnable').checked === true ? 1 : 0;
+	var start = document.getElementById('alarmTime').value;
 
-	var hour = start.substring(0,2);
-	var minute = start.substring(3);
-
-	get(`${baseUrl}/setAlarm?e=${enable === true ? 1 : 0}&h=${hour}&m=${minute}`);
+	get(`${baseUrl}/setAlarm?enable=${enable}&time=${start}`);
 }
 
 function applyDecoColorAll(event, line) {
@@ -163,6 +164,9 @@ function updateUi(d) {
 	document.getElementById('time').innerHTML                = d['time']['hour'].toString().padStart(2, '0') + ' : ' + d['time']['minute'].toString().padStart(2, '0');
 	document.getElementById('date').innerHTML                = d['date']['day'].toString().padStart(2, '0') + ' / ' + d['date']['month'].toString().padStart(2, '0') + ' / ' + d['date']['year'].toString().padStart(4, '0');
 
+	document.getElementById('umbrellaAlert').innerHTML       = d['umbrellaAlert'] == 1? "ON" : "OFF";
+	document.getElementById('alarmStatus').innerHTML         = d['alarm']['enable'] == 1? "ON" : "OFF";
+
 	updateUiColorInt('clockFirstHourColor',    d['hourColor'][0]);
 	updateUiColorInt('clockSecondHourColor',   d['hourColor'][1]);
 	updateUiColorInt('clockFirstMinuteColor',  d['hourColor'][2]);
@@ -190,8 +194,12 @@ function updateUi(d) {
 		updateUiColorInt('favDLC' + (i + 1), d['decoColor'][i]);
 	}
 
+	document.getElementById('nightModeEnable').checked = d['nightMode']['enable'] == 1;
 	document.getElementById('nightModeStart').value = d['nightMode']['start']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['start']['minute'].toString().padStart(2, '0');
 	document.getElementById('nightModeEnd').value = d['nightMode']['end']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['end']['minute'].toString().padStart(2, '0');
+
+	document.getElementById('alarmEnable').checked = d['alarm']['enable'] == 1;
+	document.getElementById('alarmTime').value = d['alarm']['hour'].toString().padStart(2, '0') + ':' + d['alarm']['minute'].toString().padStart(2, '0');
 }
 
 /* ── Register all event listeners (once on startup) ─── */
@@ -234,14 +242,14 @@ function bindEvents() {
 	document.querySelector('#applyLine2All').addEventListener('click', function (e) { applyDecoColorAll(e, 2); });
 
 	// Clock brightness
-	document.querySelector('#idCBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'ON');   changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '1'); });
-	document.querySelector('#idCBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'OFF');  changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '0'); });
-	document.querySelector('#idCBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'AUTO'); changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], '2'); });
+	document.querySelector('#idCBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'ON');   changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 1); });
+	document.querySelector('#idCBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'OFF');  changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 0); });
+	document.querySelector('#idCBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'AUTO'); changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 2); });
 
 	// Decoration brightness
-	document.querySelector('#idDBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'ON');   changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '1'); });
-	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '0'); });
-	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], '2'); });
+	document.querySelector('#idDBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'ON');   changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 1); });
+	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 0); });
+	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 2); });
 
     // Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });

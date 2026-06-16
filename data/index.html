@@ -55,34 +55,48 @@
 
     <!-- ── Status ──────────────────────────────────────────── -->
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <div class="stat-card h-100">
-                <div class="stat-icon text-success"><i class="bi bi-clock"></i></div>
+                <div class="stat-icon"><i class="bi bi-clock"></i></div>
                 <div class="stat-value" id="time">--:--</div>
                 <div class="stat-label">Time</div>
             </div>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <div class="stat-card h-100">
-                <div class="stat-icon text-primary"><i class="bi bi-calendar3"></i></div>
+                <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
                 <div class="stat-value" id="date">--/--/--</div>
                 <div class="stat-label">Date</div>
             </div>
         </div>	
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <div class="stat-card h-100">
-                <div class="stat-icon text-danger"><i class="bi bi-thermometer-half"></i></div>
+                <div class="stat-icon"><i class="bi bi-thermometer-half"></i></div>
                 <div class="stat-value" id="temperature">--</div>
                 <div class="stat-label">Temperature</div>
             </div>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <div class="stat-card h-100">
-                <div class="stat-icon text-warning"><i class="bi bi-moisture"></i></div>
+                <div class="stat-icon"><i class="bi bi-moisture"></i></div>
                 <div class="stat-value" id="humidity">---</div>
                 <div class="stat-label">Humidity</div>
             </div>
         </div>
+        <div class="col-12 col-md-2">
+            <div class="stat-card h-100">
+                <div class="stat-icon"><i class="bi bi-umbrella"></i></div>
+                <div class="stat-value" id="umbrellaAlert">---</div>
+                <div class="stat-label">Umbrella Alert</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-2">
+            <div class="stat-card h-100">
+                <div class="stat-icon"><i class="bi bi-alarm"></i></div>
+                <div class="stat-value" id="alarmStatus">---</div>
+                <div class="stat-label">Alarm</div>
+            </div>
+        </div>                
     </div>
 
     <!-- ── Clock + Day/Month colors ────────────────────────── -->
@@ -379,15 +393,19 @@
 
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-sm-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="nightModeEnable">
+                            <label class="form-check-label" for="flexSwitchCheckDefault">Enable</label>
+                        </div>                        
+                        <div class="col-sm-4">
                             <label class="form-label" for="nightModeStart">Start Time</label>
                             <input type="time" class="form-control" id="nightModeStart" value="00:00">
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-4">
                             <label class="form-label" for="nightModeEnd">End Time</label>
                             <input type="time" class="form-control" id="nightModeEnd" value="05:30">
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-4">
                             <button type="button" id="setNightTime" class="btn btn-primary w-100 btn-state">
                                 <i class="bi bi-check-lg me-1"></i>Apply
                             </button>
@@ -402,24 +420,25 @@
         <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h6><i class="bi bi-stars me-2"></i>Alarm Mode</h6>
+                    <h6><i class="bi bi-alarm me-2"></i>Alarm</h6>
                 </div>
 
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="alarm_enable">
+                            <input class="form-check-input" type="checkbox" id="alarmEnable">
                             <label class="form-check-label" for="flexSwitchCheckDefault">Enable</label>
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-4">
                             <label class="form-label" for="nightModeEnd">Time</label>
-                            <input type="time" class="form-control" id="alarm_time" value="00:00">
+                            <input type="time" class="form-control" id="alarmTime" value="00:00">
                         </div>
-                        <div class="col-sm-3">
+                        <div class="col-sm-4">
                             <button type="button" id="btnAlarm" class="btn btn-primary w-100 btn-state">
                                 <i class="bi bi-check-lg me-1"></i>Apply
                             </button>
-                        </div>                        
+                        </div>        
+                          
                     </div>
                 </div>                
 
