@@ -160,6 +160,8 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "br.pool.ntp.org", -3 * 3600, 60000);
 String localIp = "000.000.000.00";
 
+bool inicializando = true;
+
 // --------------------------------------------------------------------------------
 // --------------------------- DECLARAÇÃO DE FUNÇÕES ------------------------------
 // --------------------------------------------------------------------------------
@@ -764,16 +766,19 @@ void setup() {
     serverWeb.begin();
       
     stripClock.begin();
-    stripClock.fill(BRANCO);
-    stripClock.show();
-    stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
+    //stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);    
+    //stripClock.fill(BRANCO);
+    //stripClock.show();
+
       
     stripDeco.begin();
-    stripDeco.fill(BRANCO);
-    stripDeco.show();
-    stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
+    //stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);    
+    //stripDeco.fill(BRANCO);
+    //stripDeco.show();
       
     timeToChangeMode = 0;
+
+    inicializando = true;
 }
 
 // --------------------------------------------------------------------------------
@@ -789,6 +794,29 @@ void loop() {
 
     serverWeb.handleClient();
     uint32_t now = millis();
+
+    if(inicializando){
+        stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
+        stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
+
+        for (size_t i = 0; i < LED_CLOCK_COUNT; i++)
+        {
+            stripClock.clear();            
+            stripClock.setPixelColor(i, BRANCO);
+            stripClock.show();
+            delay(10);
+        }
+
+        for (size_t i = 0; i < LED_DECO_COUNT; i++)
+        {
+            stripDeco.clear();            
+            stripDeco.setPixelColor(i, BRANCO);
+            stripDeco.show();
+            delay(10);
+        }        
+
+        inicializando = false;
+    }
 
     // Prioridade Máxima 1: Executa a animação e o som do alarme se estiver ativo
     if (isAlarmRinging) {
