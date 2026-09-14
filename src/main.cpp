@@ -251,8 +251,9 @@ void loadConfigurationDefault() {
         dadosLedClock.decoColor[i] = BRANCO;
     }  
 
-    dadosLedClock.brightnessMode.clockMode = ON;
-    dadosLedClock.brightnessMode.decoMode = ON;
+    setBrightnessModeDefault();
+
+
     dadosLedClock.nightMode.enabled = ON;
     dadosLedClock.nightMode.start = {0, 0};
     dadosLedClock.nightMode.end = {5, 30}; 
@@ -261,6 +262,11 @@ void loadConfigurationDefault() {
     dadosLedClock.alarm.time = {6, 0};
 
     saveConfig();
+}
+
+void setBrightnessModeDefault(){
+    dadosLedClock.brightnessMode.clockMode = ON;
+    dadosLedClock.brightnessMode.decoMode = ON;
 }
 
 uint32_t hexStringToColor(const char* hexStr) {
