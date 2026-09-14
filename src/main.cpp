@@ -230,10 +230,19 @@ void loadConfigurationDefault() {
     for (int i = 0; i < 2; i++) {
         dadosLedClock.clockColor[i] = AZUL;
         dadosLedClock.clockColor[i+2] = BRANCO;
+    }
+
+        for (int i = 0; i < 2; i++) {
         dadosLedClock.dayColor[i] = VERDE;
         dadosLedClock.dayColor[i+2] = BRANCO;
+    }
+
+        for (int i = 0; i < 2; i++) {
         dadosLedClock.tempColor[i] = VERMELHO;
         dadosLedClock.tempColor[i+2] = BRANCO;
+    }
+
+        for (int i = 0; i < 2; i++) {
         dadosLedClock.humidityColor[i] = AMARELO;
         dadosLedClock.humidityColor[i+2] = BRANCO;
     }
