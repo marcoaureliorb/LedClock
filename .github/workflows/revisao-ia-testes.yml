@@ -1,0 +1,37 @@
+name: Testes da Revisão por IA
+
+# Executa a suíte do próprio revisor. Só roda quando o revisor muda, para não
+# competir com os demais checks do repositório.
+
+on:
+  pull_request:
+    paths:
+      - '.github/revisao-ia/**'
+      - '.github/workflows/revisao-ia*.yml'
+  push:
+    paths:
+      - '.github/revisao-ia/**'
+      - '.github/workflows/revisao-ia*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: node --test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Executar os testes
+        working-directory: .github/revisao-ia
+        run: node --test "testes/*.test.mjs"

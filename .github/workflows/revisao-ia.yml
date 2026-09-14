@@ -1,0 +1,121 @@
+name: Revisão de Código por IA
+
+# Revisa o diff do Pull Request com um modelo de linguagem e publica o resultado
+# como comentário. Documentação: .github/revisao-ia/README.md
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      numero_do_pr:
+        description: 'Número do Pull Request a revisar'
+        required: true
+        type: string
+
+# Permissões mínimas: ler o código e escrever o comentário da revisão.
+permissions:
+  contents: read
+  pull-requests: write
+
+# Um push novo cancela a revisão em andamento do mesmo PR — evita gastar tokens
+# revisando um commit que já foi substituído.
+concurrency:
+  group: revisao-ia-${{ github.event.pull_request.number || inputs.numero_do_pr }}
+  cancel-in-progress: true
+
+jobs:
+  revisao:
+    name: Revisão por IA
+    runs-on: ${{ vars.REVISAO_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    if: github.event.pull_request.draft != true
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REVISAO_NUMERO_PR: ${{ inputs.numero_do_pr }}
+
+      # --- Provedor do modelo ---
+      REVISAO_API_KEY: ${{ secrets.REVISAO_API_KEY }}
+      REVISAO_PROVEDOR: ${{ vars.REVISAO_PROVEDOR }}
+      REVISAO_MODELO: ${{ vars.REVISAO_MODELO }}
+      REVISAO_ENDPOINT: ${{ vars.REVISAO_ENDPOINT }}
+      REVISAO_DEPLOYMENT: ${{ vars.REVISAO_DEPLOYMENT }}
+      REVISAO_API_VERSION: ${{ vars.REVISAO_API_VERSION }}
+      REVISAO_EFFORT: ${{ vars.REVISAO_EFFORT }}
+
+      # --- Comportamento da revisão ---
+      REVISAO_MODO: ${{ vars.REVISAO_MODO }}
+      REVISAO_SEVERIDADE_BLOQUEIO: ${{ vars.REVISAO_SEVERIDADE_BLOQUEIO }}
+      REVISAO_MAX_ARQUIVOS: ${{ vars.REVISAO_MAX_ARQUIVOS }}
+      REVISAO_MAX_CARACTERES: ${{ vars.REVISAO_MAX_CARACTERES }}
+      REVISAO_CONVENCOES: ${{ vars.REVISAO_CONVENCOES }}
+
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@v4
+        with:
+          # Só o commit revisado: o diff vem da API, não do histórico local.
+          # Na execução manual não há payload de PR — aí usamos a ref do PR informado,
+          # para que o conteúdo em disco corresponda ao diff analisado.
+          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', inputs.numero_do_pr) }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Preparar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar se há chave de API disponível
+        id: chave
+        run: |
+          if [ -z "${REVISAO_API_KEY}" ]; then
+            echo "disponivel=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nenhuma chave de API configurada (secret REVISAO_API_KEY). A revisão por IA será ignorada. PRs vindos de fork não têm acesso a secrets."
+          else
+            echo "disponivel=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detectar arquivos alterados
+        id: deteccao
+        if: steps.chave.outputs.disponivel == 'true'
+        run: node .github/revisao-ia/src/index.mjs detectar
+
+      # ----------------------------------------------------------------------
+      # Verificações nativas (opcional).
+      #
+      # Cada chave de "verificacoesNativas" no revisor.config.json gera dois
+      # outputs no passo acima: rodar_<chave> e dir_<chave>. Escreva um passo por
+      # verificação, no molde abaixo, e registre o resultado com
+      # registrar-verificacao.mjs — ele é lido pelo revisor, que passa a
+      # considerar o que a ferramenta nativa já acusou (e não repete o achado).
+      #
+      # Exemplo, para uma verificação declarada como:
+      #   "verificacoesNativas": {
+      #     "testesNode": { "habilitada": true, "gatilho": ["src/**"], "diretorio": "." }
+      #   }
+      #
+      # - name: Testes (Node)
+      #   if: steps.deteccao.outputs.rodar_testesNode == 'true'
+      #   continue-on-error: true
+      #   env:
+      #     DIRETORIO: ${{ steps.deteccao.outputs.dir_testesNode }}
+      #   run: |
+      #     set +e
+      #     cd "$DIRETORIO"
+      #     npm ci > "$RUNNER_TEMP/instalacao.log" 2>&1
+      #     npm test > "$RUNNER_TEMP/testes.log" 2>&1
+      #     RESULTADO=$?
+      #     tail -n 60 "$RUNNER_TEMP/testes.log"
+      #     cd "$GITHUB_WORKSPACE"
+      #     if [ $RESULTADO -eq 0 ]; then
+      #       node .github/revisao-ia/src/registrar-verificacao.mjs "npm test" "sucesso" "$(tail -n 1 "$RUNNER_TEMP/testes.log")"
+      #     else
+      #       node .github/revisao-ia/src/registrar-verificacao.mjs "npm test" "falhou" "$(tail -n 15 "$RUNNER_TEMP/testes.log" | head -c 800)"
+      #     fi
+      # ----------------------------------------------------------------------
+
+      - name: Revisar o código com IA
+        if: steps.chave.outputs.disponivel == 'true'
+        run: node .github/revisao-ia/src/index.mjs revisar

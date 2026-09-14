@@ -1,0 +1,112 @@
+{
+  "$comentario": "Configuracao da revisao de codigo por IA. Qualquer campo pode ser sobrescrito por variavel de ambiente (ver README.md). Modelo mais forte e mais caro: claude-opus-5.",
+
+  "provedor": "anthropic",
+  "modelo": "claude-sonnet-5",
+  "effort": "high",
+  "maxTokensSaida": 16000,
+  "temperatura": null,
+
+  "arquivoDeConvencoes": ".github/revisao-ia/convencoes.md",
+
+  "modo": "informativo",
+  "severidadeDeBloqueio": "Critical",
+  "bloquearQuandoApiFalhar": false,
+  "considerarApenasConfirmados": false,
+
+  "limites": {
+    "maxArquivos": 40,
+    "maxCaracteresTotal": 240000,
+    "maxCaracteresPorArquivo": 24000,
+    "maxLinhasParaArquivoCompleto": 400,
+    "maxApontamentos": 30
+  },
+
+  "incluir": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.jsx",
+    "**/*.vue",
+    "**/*.py",
+    "**/*.rb",
+    "**/*.go",
+    "**/*.rs",
+    "**/*.java",
+    "**/*.kt",
+    "**/*.php",
+    "**/*.cs",
+    "**/*.sql",
+    "**/*.sh",
+    "**/*.css",
+    "**/*.scss",
+    "**/*.html",
+    "**/*.yml",
+    "**/*.yaml"
+  ],
+
+  "excluir": [
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/out/**",
+    "**/target/**",
+    "**/coverage/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/.venv/**",
+    "**/__pycache__/**",
+
+    "**/*.env",
+    "**/.env*",
+    "**/*.pem",
+    "**/*.key",
+    "**/*.cer",
+    "**/*.pfx",
+    "**/*.p12",
+    "**/secrets*.json",
+    "**/appsettings*.json",
+
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/*.bundle.js",
+    "**/*.generated.*",
+    "**/*.g.ts",
+
+    "**/package-lock.json",
+    "**/yarn.lock",
+    "**/pnpm-lock.yaml",
+    "**/poetry.lock",
+    "**/uv.lock",
+    "**/Gemfile.lock",
+    "**/go.sum",
+    "**/Cargo.lock",
+    "**/*.lock",
+
+    "**/*.snap",
+    "**/__snapshots__/**",
+
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.gif",
+    "**/*.webp",
+    "**/*.svg",
+    "**/*.ico",
+    "**/*.pdf",
+    "**/*.docx",
+    "**/*.xlsx",
+    "**/*.zip",
+    "**/*.gz",
+    "**/*.dll",
+    "**/*.exe",
+    "**/*.so",
+    "**/*.dylib",
+    "**/*.pdb"
+  ],
+
+  "verificacoesNativas": {}
+}
