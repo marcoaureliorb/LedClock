@@ -1,0 +1,17 @@
+services:
+  esp8266-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ledclock-esp8266-builder
+    container_name: ledclock-build
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - platformio-cache:/root/.platformio
+    command: pio run
+    environment:
+      PLATFORMIO_SETTING_ENABLE_TELEMETRY: "false"
+
+volumes:
+  platformio-cache:

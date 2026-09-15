@@ -1,0 +1,37 @@
+name: Build ESP8266
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker compose build
+
+      - name: Compile firmware
+        run: docker compose run --rm esp8266-build
+
+      - name: Compile LittleFS
+        run: docker compose run --rm esp8266-build pio run -t buildfs
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledclock-firmware
+          path: |
+            .pio/build/esp8266/firmware.bin
+            .pio/build/esp8266/littlefs.bin
