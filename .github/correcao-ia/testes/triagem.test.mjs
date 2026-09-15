@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { afterEach, describe, it } from 'node:test';
 
 import { decidirTriagem } from '../src/index.mjs';
+
+afterEach(() => {
+  delete process.env.CORRECAO_NUMERO_ISSUE;
+});
 
 const CONFIGURACAO = {
   rotulosDeBug: ['bug'],
@@ -40,6 +44,51 @@ describe('decidirTriagem', () => {
 
     assert.equal(decisao.processar, true);
     assert.equal(decisao.numero, 10);
+  });
+
+  // Regressao: no evento `issues` o Actions define CORRECAO_NUMERO_ISSUE como
+  // string vazia, porque a expressao `inputs.numero_da_issue` nao existe ali.
+  // Com `??`, a string vazia vencia o numero do payload e toda Issue real era
+  // recusada com "evento sem numero de Issue valido".
+  it('usa o numero do payload quando a variavel de ambiente vem vazia', async () => {
+    process.env.CORRECAO_NUMERO_ISSUE = '';
+
+    const decisao = await decidirTriagem({
+      evento: { action: 'opened', issue: issue() },
+      nomeDoEvento: 'issues',
+      configuracao: CONFIGURACAO,
+      cliente: clienteComPermissao('write'),
+    });
+
+    assert.equal(decisao.numero, 10);
+    assert.equal(decisao.processar, true);
+  });
+
+  it('usa a variavel de ambiente quando o workflow e disparado a mao', async () => {
+    process.env.CORRECAO_NUMERO_ISSUE = '77';
+
+    const decisao = await decidirTriagem({
+      evento: { issue: issue() },
+      nomeDoEvento: 'workflow_dispatch',
+      configuracao: CONFIGURACAO,
+      cliente: clienteComPermissao('write'),
+    });
+
+    assert.equal(decisao.numero, 77);
+  });
+
+  it('recusa numero nao inteiro vindo do disparo manual', async () => {
+    process.env.CORRECAO_NUMERO_ISSUE = '12; rm -rf /';
+
+    const decisao = await decidirTriagem({
+      evento: { issue: issue() },
+      nomeDoEvento: 'workflow_dispatch',
+      configuracao: CONFIGURACAO,
+      cliente: clienteComPermissao('write'),
+    });
+
+    assert.equal(decisao.numero, null);
+    assert.equal(decisao.processar, false);
   });
 
   it('ignora Issue que nao e bug', async () => {

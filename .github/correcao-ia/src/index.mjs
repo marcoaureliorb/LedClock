@@ -140,13 +140,30 @@ function montarAmbiente() {
 }
 
 /**
+ * Le uma variavel de ambiente tratando string vazia como ausente.
+ *
+ * O Actions define a variavel mesmo quando a expressao que a alimenta e vazia:
+ * `CORRECAO_NUMERO_ISSUE: ${{ inputs.numero_da_issue }}` vira `""` em um evento
+ * de Issue, e nao `undefined`. Por isso `??` nao serve aqui — ele so cai para o
+ * padrao em null/undefined, e a string vazia venceria o valor do payload.
+ */
+function lerVariavel(nome) {
+  const valor = process.env[nome];
+
+  return typeof valor === 'string' && valor.trim() !== '' ? valor.trim() : undefined;
+}
+
+/**
  * Numero da Issue do evento, com validacao.
  *
  * O numero e usado para montar caminhos de API e o nome da branch, entao ele
  * precisa ser um inteiro positivo, e nao apenas "o que veio no payload".
  */
 function numeroDaIssueDoEvento(evento) {
-  const bruto = process.env.CORRECAO_NUMERO_ISSUE ?? evento?.issue?.number;
+  const bruto = lerVariavel('CORRECAO_NUMERO_ISSUE') ?? evento?.issue?.number;
+
+  if (bruto === undefined || bruto === null) return null;
+
   const numero = Number.parseInt(bruto, 10);
 
   if (!Number.isFinite(numero) || numero <= 0 || String(numero) !== String(bruto).trim()) {
@@ -257,7 +274,7 @@ export async function decidirTriagem({ evento, nomeDoEvento, configuracao, clien
 async function executarTriagem() {
   const { configuracao, cliente } = montarAmbiente();
   const evento = lerEvento();
-  const nomeDoEvento = process.env.GITHUB_EVENT_NAME ?? 'workflow_dispatch';
+  const nomeDoEvento = lerVariavel('GITHUB_EVENT_NAME') ?? 'workflow_dispatch';
 
   const decisao = await decidirTriagem({ evento, nomeDoEvento, configuracao, cliente });
 
