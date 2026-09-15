@@ -1,0 +1,73 @@
+name: Relatar um bug
+description: Relate um comportamento incorreto do relógio ou do painel web.
+title: '[BUG] '
+labels: ['bug']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ao abrir esta Issue, um agente de IA investiga o código e, se identificar a causa com
+        evidência no repositório, abre um Pull Request com uma correção candidata para revisão
+        humana. Se não identificar, comenta aqui com a investigação feita e não altera nada.
+
+        Quanto mais concreto for o relato abaixo, maior a chance de a causa ser encontrada.
+
+  - type: textarea
+    id: descricao
+    attributes:
+      label: O que acontece
+      description: Descreva o comportamento incorreto observado.
+      placeholder: 'Ao definir a cor do segundo dígito da hora, o primeiro dígito também muda.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que deveria acontecer
+      placeholder: 'Somente o dígito informado deveria mudar de cor.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Passos para reproduzir
+      description: Um passo por linha, incluindo a chamada exata ao endpoint, quando houver.
+      placeholder: |
+        1. Abrir o painel web do dispositivo
+        2. Chamar GET /setHourColor?p=2&r=255&g=0&b=0
+        3. Observar os dígitos 1 e 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Onde o problema aparece
+      options:
+        - Firmware (src/main.cpp)
+        - Painel web (data/)
+        - Não sei
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: >
+        Saída do monitor serial, resposta do endpoint, mensagem de erro do navegador.
+        Remova credenciais de Wi-Fi, chaves de API e endereços pessoais antes de colar.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão / commit
+      description: Commit ou data do firmware gravado no dispositivo, se souber.
+    validations:
+      required: false

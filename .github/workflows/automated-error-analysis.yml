@@ -1,0 +1,147 @@
+name: Análise e Correção Automatizada de Bugs
+
+# Investiga Issues de bug com um agente de IA. Quando a causa é identificada com
+# evidência no código, o agente corrige em uma branch `automated-error-analysis/...`,
+# roda o build e abre um Pull Request para a `main`. Quando não é, comenta na Issue
+# e não altera nada. Documentação: .github/correcao-ia/README.md
+
+on:
+  issues:
+    types: [opened, edited, labeled, reopened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      numero_da_issue:
+        description: 'Número da Issue de bug a analisar'
+        required: true
+        type: string
+
+# Menor conjunto de permissões que o processo exige:
+#   contents: write       criar a branch automática e publicar o commit
+#   pull-requests: write  abrir o Pull Request (nunca aprovar, nunca fazer merge)
+#   issues: write         comentar e aplicar os rótulos de controle
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# Controle de duplicidade: uma execução por Issue de cada vez. Sem
+# cancel-in-progress de propósito — cancelar no meio deixaria a Issue com o
+# rótulo de "em andamento" e, possivelmente, uma branch pela metade.
+concurrency:
+  group: correcao-ia-${{ github.event.issue.number || inputs.numero_da_issue }}
+  cancel-in-progress: false
+
+jobs:
+  correcao:
+    name: Correção por IA
+    runs-on: ${{ vars.CORRECAO_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
+
+    # Comentário em Pull Request também chega como `issue_comment`. O agente só
+    # trata Issue.
+    if: github.event.issue.pull_request == null
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CORRECAO_NUMERO_ISSUE: ${{ inputs.numero_da_issue }}
+
+      # --- Provedor do modelo (Azure OpenAI por padrão) ---
+      # CORRECAO_API_KEY é opcional e tem precedência: serve para apontar o
+      # agente para outro provedor sem trocar o nome do secret do Azure.
+      CORRECAO_API_KEY: ${{ secrets.CORRECAO_API_KEY }}
+      AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+      AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+
+      # --- Ajustes opcionais, sem editar arquivo ---
+      CORRECAO_PROVEDOR: ${{ vars.CORRECAO_PROVEDOR }}
+      CORRECAO_MODELO: ${{ vars.CORRECAO_MODELO }}
+      CORRECAO_EFFORT: ${{ vars.CORRECAO_EFFORT }}
+      CORRECAO_MAX_RODADAS: ${{ vars.CORRECAO_MAX_RODADAS }}
+      CORRECAO_MAX_CARACTERES: ${{ vars.CORRECAO_MAX_CARACTERES }}
+      CORRECAO_MAX_TOKENS_SAIDA: ${{ vars.CORRECAO_MAX_TOKENS_SAIDA }}
+      CORRECAO_PARAMETRO_DE_TOKENS: ${{ vars.CORRECAO_PARAMETRO_DE_TOKENS }}
+      CORRECAO_CONVENCOES: ${{ vars.CORRECAO_CONVENCOES }}
+
+    steps:
+      # Confere os três secrets antes de qualquer passo: sem eles a carga da
+      # configuração falharia e o job ficaria vermelho sem motivo útil.
+      - name: Verificar se o provedor está configurado
+        id: credenciais
+        run: |
+          FALTANDO=""
+
+          if [ -z "${AZURE_OPENAI_API_KEY}" ] && [ -z "${CORRECAO_API_KEY}" ]; then
+            FALTANDO="$FALTANDO AZURE_OPENAI_API_KEY"
+          fi
+
+          if [ "${CORRECAO_PROVEDOR:-azure-openai}" = "azure-openai" ]; then
+            [ -z "${AZURE_OPENAI_ENDPOINT}" ] && FALTANDO="$FALTANDO AZURE_OPENAI_ENDPOINT"
+            [ -z "${AZURE_OPENAI_DEPLOYMENT}" ] && FALTANDO="$FALTANDO AZURE_OPENAI_DEPLOYMENT"
+          fi
+
+          if [ -n "$FALTANDO" ]; then
+            echo "disponivel=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Correção automatizada desativada: faltam os secrets ->$FALTANDO. Ver .github/correcao-ia/README.md"
+          else
+            echo "disponivel=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Obter o código da branch base
+        if: steps.credenciais.outputs.disponivel == 'true'
+        uses: actions/checkout@v4
+        with:
+          # A análise lê o código da própria branch base; a branch automática é
+          # criada a partir do commit mais recente dela, dentro do agente.
+          # As credenciais ficam persistidas porque o agente precisa dar push na
+          # branch automática — e somente nela (ver garantirBranchAutomatica).
+          ref: main
+          fetch-depth: 1
+
+      - name: Preparar o Node.js
+        if: steps.credenciais.outputs.disponivel == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Triagem da Issue
+        id: triagem
+        if: steps.credenciais.outputs.disponivel == 'true'
+        run: node .github/correcao-ia/src/index.mjs triagem
+
+      - name: Registrar decisão da triagem
+        if: steps.triagem.outcome == 'success' && steps.triagem.outputs.processar != 'true'
+        run: echo "::notice::Issue não processada - ${{ steps.triagem.outputs.motivo }}"
+
+      # PlatformIO é a validação que prova que o firmware compila. Só é instalado
+      # quando a Issue realmente vai ser analisada, para não pagar o custo em
+      # execução descartada pela triagem.
+      - name: Preparar o Python
+        if: steps.triagem.outputs.processar == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Restaurar o cache do PlatformIO
+        if: steps.triagem.outputs.processar == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: platformio-${{ runner.os }}-
+
+      - name: Instalar o PlatformIO
+        if: steps.triagem.outputs.processar == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+          pio --version
+
+      - name: Analisar, corrigir e abrir o Pull Request
+        if: steps.triagem.outputs.processar == 'true'
+        run: node .github/correcao-ia/src/index.mjs executar
