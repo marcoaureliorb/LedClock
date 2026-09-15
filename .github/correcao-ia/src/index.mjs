@@ -204,7 +204,7 @@ export async function decidirTriagem({ evento, nomeDoEvento, configuracao, clien
       processar: false,
       numero,
       motivo: `a Issue nao e um bug (sem rotulo ${configuracao.rotulosDeBug.join('/')} `
-        + `e sem prefixo ${configuracao.prefixosDeTitulo.join('/')} no titulo)`,
+        + `e sem prefixo ${configuracao.prefixosDeTitulo.join('/')} no titulo: ${issue.titulo})`,
     };
   }
 
