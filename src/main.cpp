@@ -448,7 +448,7 @@ void getJs() {
 }
 
 String getConfigClock() {
-    DynamicJsonDocument doc(2048); 
+    DynamicJsonDocument doc(1024); 
 
     JsonObject objTime = doc.createNestedObject("time");
     objTime["hour"] = dadosLedClockRuntimeData.time.hour;
@@ -461,38 +461,9 @@ String getConfigClock() {
 
     doc["temperature"] = dadosLedClockRuntimeData.temperature;
     doc["humidity"] = dadosLedClockRuntimeData.humidity;
-    doc["umbrellaAlert"] = dadosLedClockRuntimeData.umbrellaAlarm;
-
-    auto fillHexColorArray = [](JsonArray arr, uint32_t *data, int size) {
-        for (int i = 0; i < size; i++) arr.add(data[i]);
-    };
-
-    fillHexColorArray(doc.createNestedArray("hourColor"), dadosLedClock.clockColor, 4);
-    fillHexColorArray(doc.createNestedArray("dayColor"), dadosLedClock.dayColor, 4);
-    fillHexColorArray(doc.createNestedArray("tempColor"), dadosLedClock.tempColor, 4);
-    fillHexColorArray(doc.createNestedArray("humidityColor"), dadosLedClock.humidityColor, 4);
-    fillHexColorArray(doc.createNestedArray("decoColor"), dadosLedClock.decoColor, 14);
 
     JsonObject bm = doc.createNestedObject("brightnessMode");
-    bm["clock"] = dadosLedClock.brightnessMode.clockMode;
-    bm["deco"] = dadosLedClock.brightnessMode.decoMode;
     bm["brightValue"] = dadosLedClockRuntimeData.brightValue;
-
-    JsonObject nm = doc.createNestedObject("nightMode");
-    nm["enable"] = dadosLedClock.nightMode.enabled;
-
-    JsonObject objStart = nm.createNestedObject("start");
-    objStart["hour"] = dadosLedClock.nightMode.start.hour;
-    objStart["minute"] = dadosLedClock.nightMode.start.minute;
-
-    JsonObject objEnd = nm.createNestedObject("end");
-    objEnd["hour"] = dadosLedClock.nightMode.end.hour;
-    objEnd["minute"] = dadosLedClock.nightMode.end.minute;  
-
-    JsonObject alm = doc.createNestedObject("alarm");
-    alm["enable"] = dadosLedClock.alarm.enabled;
-    alm["hour"] = dadosLedClock.alarm.time.hour;
-    alm["minute"] = dadosLedClock.alarm.time.minute;
 
     String output;
     serializeJson(doc, output);
