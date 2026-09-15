@@ -1,0 +1,130 @@
+{
+  "$comentario": "Configuracao da correcao automatizada de bugs por IA. Qualquer campo pode ser sobrescrito por variavel de ambiente (ver README.md). Os comandos de validacao NUNCA vem do modelo nem da Issue: so daqui.",
+
+  "provedor": "azure-openai",
+  "modelo": "gpt-4o",
+  "apiVersion": "2024-10-21",
+  "effort": "high",
+  "maxTokensSaida": 16000,
+  "temperatura": 0,
+  "parametroDeTokens": "max_tokens",
+
+  "arquivoDeConvencoes": ".github/correcao-ia/convencoes.md",
+
+  "branchBase": "main",
+  "prefixoDaBranch": "automated-error-analysis",
+
+  "rotulosDeBug": ["bug"],
+  "prefixosDeTitulo": ["[BUG]"],
+  "comandoDeReanalise": "/analisar-bug",
+  "rotuloEmAndamento": "correcao-ia:em-andamento",
+  "rotuloConcluido": "correcao-ia:analisada",
+
+  "limites": {
+    "maxRodadasDeInvestigacao": 3,
+    "maxArquivosPorRodada": 8,
+    "maxBuscasPorRodada": 6,
+    "maxResultadosPorBusca": 40,
+    "maxCaracteresPorArquivo": 40000,
+    "maxCaracteresTotal": 280000,
+    "maxArquivosNaArvore": 400,
+    "maxArquivosAlterados": 6,
+    "maxComentariosDaIssue": 20,
+    "maxCaracteresDaIssue": 12000
+  },
+
+  "incluir": [
+    "**/*.c",
+    "**/*.h",
+    "**/*.cpp",
+    "**/*.hpp",
+    "**/*.ino",
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.ts",
+    "**/*.css",
+    "**/*.html",
+    "**/*.json",
+    "**/*.ini",
+    "**/*.md",
+    "**/*.yml",
+    "**/*.yaml"
+  ],
+
+  "editaveis": [
+    "src/**",
+    "include/**",
+    "lib/**",
+    "data/**",
+    "test/**",
+    "platformio.ini"
+  ],
+
+  "excluir": [
+    "**/node_modules/**",
+    "**/.pio/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/.git/**",
+    "**/Images/**",
+    "**/board/**",
+
+    "**/*.env",
+    "**/.env*",
+    "**/secrets*.h",
+    "**/secrets*.json",
+    "**/*.pem",
+    "**/*.key",
+
+    "**/package-lock.json",
+    "**/*.lock",
+    "**/idedata.json",
+
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.gif",
+    "**/*.ico",
+    "**/*.bin"
+  ],
+
+  "validacoes": {
+    "compilacaoDoFirmware": {
+      "habilitada": true,
+      "descricao": "Compila o firmware para o ESP8266 (env esp12e).",
+      "gatilho": ["src/**", "include/**", "lib/**", "platformio.ini"],
+      "comando": ["pio", "run", "-e", "esp12e"],
+      "diretorio": ".",
+      "obrigatoria": true,
+      "timeoutEmSegundos": 900
+    },
+    "sintaxeDaInterfaceWeb": {
+      "habilitada": true,
+      "descricao": "Verifica a sintaxe do JavaScript servido pelo LittleFS.",
+      "gatilho": ["data/**/*.js"],
+      "comando": ["node", "--check", "data/app.js"],
+      "diretorio": ".",
+      "obrigatoria": true,
+      "timeoutEmSegundos": 60
+    },
+    "testesDaRevisaoIa": {
+      "habilitada": true,
+      "descricao": "Suite node:test do revisor de codigo por IA.",
+      "gatilho": [".github/revisao-ia/**"],
+      "comando": ["node", ".github/correcao-ia/testes/executar.mjs", ".github/revisao-ia/testes"],
+      "diretorio": ".",
+      "obrigatoria": true,
+      "timeoutEmSegundos": 300
+    },
+    "testesDaCorrecaoIa": {
+      "habilitada": true,
+      "descricao": "Suite node:test do proprio agente de correcao.",
+      "gatilho": [".github/correcao-ia/**"],
+      "comando": ["node", ".github/correcao-ia/testes/executar.mjs", ".github/correcao-ia/testes"],
+      "diretorio": ".",
+      "obrigatoria": true,
+      "timeoutEmSegundos": 300
+    }
+  }
+}

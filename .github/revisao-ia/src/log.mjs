@@ -31,12 +31,22 @@ function escreva(prefixo, mensagem) {
   process.stdout.write(`${prefixo}${redigir(mensagem)}\n`);
 }
 
-export const log = {
-  info: (mensagem) => escreva('[revisao-ia] ', mensagem),
-  aviso: (mensagem) => escreva('::warning::', mensagem),
-  erro: (mensagem) => escreva('::error::', mensagem),
-  depuracao: (mensagem) => escreva('::debug::', mensagem),
-};
+/**
+ * Cria um log com prefixo proprio.
+ *
+ * Os niveis de aviso, erro e depuracao usam os comandos do Actions, que ja se
+ * identificam sozinhos no log; so `info` leva o nome da automacao.
+ */
+export function criarLog(nome) {
+  return {
+    info: (mensagem) => escreva(`[${nome}] `, mensagem),
+    aviso: (mensagem) => escreva('::warning::', mensagem),
+    erro: (mensagem) => escreva('::error::', mensagem),
+    depuracao: (mensagem) => escreva('::debug::', mensagem),
+  };
+}
+
+export const log = criarLog('revisao-ia');
 
 /** Limpa o estado interno. Usado apenas pelos testes. */
 export function limparSegredosRegistrados() {
