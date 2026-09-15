@@ -16,9 +16,31 @@ const CONFIGURACAO = {
   limites: { maxCaracteresDaIssue: 5000, maxComentariosDaIssue: 10 },
 };
 
-/** Cliente que responde a permissao pedida, sem rede. */
+/**
+ * Cliente falso, sem rede.
+ *
+ * `obterIssue` registra as chamadas: a triagem so deve ir a API quando o evento
+ * nao traz a Issue no payload.
+ */
+function clienteFalso({ permissao = 'write', issueDaApi = null } = {}) {
+  const chamadas = [];
+
+  return {
+    chamadas,
+    permissaoDoUsuario: async () => permissao,
+    async obterIssue(numero) {
+      chamadas.push(numero);
+
+      if (issueDaApi === null) throw new Error(`obterIssue(${numero}) nao deveria ter sido chamado`);
+
+      return issueDaApi;
+    },
+  };
+}
+
+/** Atalho para os casos em que a Issue vem no payload. */
 function clienteComPermissao(permissao) {
-  return { permissaoDoUsuario: async () => permissao };
+  return clienteFalso({ permissao });
 }
 
 function issue(extra = {}) {
@@ -64,17 +86,73 @@ describe('decidirTriagem', () => {
     assert.equal(decisao.processar, true);
   });
 
-  it('usa a variavel de ambiente quando o workflow e disparado a mao', async () => {
+  // Regressao: no `workflow_dispatch` o payload nao tem `github.event.issue`.
+  // Lendo a Issue dali, titulo e rotulos vinham vazios e toda Issue disparada a
+  // mao era recusada como "nao e um bug" por falta de dado, e nao por conteudo.
+  it('busca a Issue na API quando o workflow e disparado a mao', async () => {
     process.env.CORRECAO_NUMERO_ISSUE = '77';
 
+    const cliente = clienteFalso({ issueDaApi: issue({ number: 77 }) });
+
     const decisao = await decidirTriagem({
-      evento: { issue: issue() },
+      evento: {},
       nomeDoEvento: 'workflow_dispatch',
       configuracao: CONFIGURACAO,
-      cliente: clienteComPermissao('write'),
+      cliente,
     });
 
     assert.equal(decisao.numero, 77);
+    assert.equal(decisao.processar, true);
+    assert.deepEqual(cliente.chamadas, [77]);
+  });
+
+  it('classifica pelo conteudo real da Issue no disparo manual', async () => {
+    process.env.CORRECAO_NUMERO_ISSUE = '78';
+
+    const cliente = clienteFalso({
+      issueDaApi: issue({ number: 78, title: 'Ideia nova', labels: [] }),
+    });
+
+    const decisao = await decidirTriagem({
+      evento: {},
+      nomeDoEvento: 'workflow_dispatch',
+      configuracao: CONFIGURACAO,
+      cliente,
+    });
+
+    assert.equal(decisao.processar, false);
+    assert.match(decisao.motivo, /nao e um bug/);
+    assert.match(decisao.motivo, /Ideia nova/);
+  });
+
+  it('nao vai a API quando o evento ja traz a Issue', async () => {
+    const cliente = clienteFalso();
+
+    const decisao = await decidirTriagem({
+      evento: { action: 'opened', issue: issue() },
+      nomeDoEvento: 'issues',
+      configuracao: CONFIGURACAO,
+      cliente,
+    });
+
+    assert.equal(decisao.processar, true);
+    assert.deepEqual(cliente.chamadas, []);
+  });
+
+  it('busca na API quando o payload traz outra Issue que nao a informada', async () => {
+    process.env.CORRECAO_NUMERO_ISSUE = '99';
+
+    const cliente = clienteFalso({ issueDaApi: issue({ number: 99 }) });
+
+    const decisao = await decidirTriagem({
+      evento: { action: 'opened', issue: issue({ number: 10 }) },
+      nomeDoEvento: 'workflow_dispatch',
+      configuracao: CONFIGURACAO,
+      cliente,
+    });
+
+    assert.equal(decisao.numero, 99);
+    assert.deepEqual(cliente.chamadas, [99]);
   });
 
   it('recusa numero nao inteiro vindo do disparo manual', async () => {
