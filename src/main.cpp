@@ -24,9 +24,36 @@
 //
 // Formato: [segundos.milis] [TAG] mensagem
 // As strings de formato ficam na flash (PSTR) para não consumir RAM.
+// Cada linha vai para a Serial e também para um buffer circular em RAM,
+// consultado pela rota /getLogs.
 //
+// Memória do buffer: LOG_BUFFER_LINES x LOG_LINE_LEN = 50 x 160 = 8000 bytes (estático).
+// O ESP8266 tem ~80 KB de RAM; o firmware usa ~34 KB estáticos, então sobra heap suficiente.
+constexpr uint32_t LOG_BUFFER_LINES = 50;
+constexpr uint32_t LOG_LINE_LEN = 160;   // linhas maiores são truncadas no buffer (a Serial recebe completa)
+
+char logBuffer[LOG_BUFFER_LINES][LOG_LINE_LEN];
+uint32_t logSeq = 0;          // número sequencial da última linha gravada (1, 2, 3, ...)
+char bootSummary[220] = "";   // resumo do boot (motivo do reset, último checkpoint) - não sai do buffer
+
+void logPrintf(PGM_P fmt, ...) __attribute__((format(printf, 1, 2)));
+void logPrintf(PGM_P fmt, ...) {
+    char line[320];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf_P(line, sizeof(line), fmt, args);
+    va_end(args);
+
+    Serial.println(line);
+
+    logSeq++;
+    char* slot = logBuffer[logSeq % LOG_BUFFER_LINES];
+    strncpy(slot, line, LOG_LINE_LEN - 1);
+    slot[LOG_LINE_LEN - 1] = '\0';
+}
+
 #define LOG(tag, fmt, ...) \
-    Serial.printf_P(PSTR("[%7lu.%03lu] [%-6s] " fmt "\n"), millis() / 1000UL, millis() % 1000UL, tag, ##__VA_ARGS__)
+    logPrintf(PSTR("[%7lu.%03lu] [%-6s] " fmt), millis() / 1000UL, millis() % 1000UL, tag, ##__VA_ARGS__)
 
 // Operações que demorarem mais que isso são logadas como lentas
 constexpr uint32_t SLOW_OP_MS = 50;
@@ -299,6 +326,7 @@ uint32_t showDecoCount = 0;
 uint32_t showClockTotalMs = 0;
 uint32_t showDecoTotalMs = 0;
 uint32_t apiRequestCount = 0;
+uint32_t getLogsCount = 0;      // requisições /getLogs (não entram no log)
 uint32_t wifiDisconnectCount = 0;
 uint32_t minFreeHeap = UINT32_MAX;
 
@@ -397,11 +425,19 @@ void logBootInfo() {
         LOG("BOOT", ">>> Ultima rota HTTP chamada no boot anterior: '%s'", prev.lastApi);
         breadcrumb = prev;
         breadcrumb.bootCount = prev.bootCount + 1;
+
+        snprintf(bootSummary, sizeof(bootSummary),
+            "Boot #%u | Reset: %s (exccause=%u epc1=0x%08x) | Anterior: checkpoint %s aos %u ms, heap %u, rota '%s'",
+            breadcrumb.bootCount, ESP.getResetReason().c_str(), ri ? ri->exccause : 0, ri ? ri->epc1 : 0,
+            checkpointName(prev.checkpoint), prev.uptimeMs, prev.freeHeap, prev.lastApi);
     } else {
         LOG("BOOT", "Sem breadcrumb anterior na RTC (power-on ou primeira execucao)");
         memset(&breadcrumb, 0, sizeof(breadcrumb));
         breadcrumb.magic = RTC_MAGIC;
         breadcrumb.bootCount = 1;
+
+        snprintf(bootSummary, sizeof(bootSummary), "Boot #1 | Reset: %s | Sem dados do boot anterior",
+            ESP.getResetReason().c_str());
     }
     breadcrumb.lastApi[0] = 0;
     LOG("BOOT", "Boot numero %u desde o ultimo power-on", breadcrumb.bootCount);
@@ -479,8 +515,8 @@ void logHealth(uint32_t now) {
         now / 1000, loopCount, loopCount * 1000.0 / HEALTH_INTERVAL_MS, maxLoopGapMs, checkpointName(maxLoopGapCp), slowLoopCount);
     LOG("HEALTH", "heap=%u minHeap=%u maiorBloco=%u frag=%u%% stack=%u",
         heap, minFreeHeap, ESP.getMaxFreeBlockSize(), ESP.getHeapFragmentation(), ESP.getFreeContStack());
-    LOG("HEALTH", "wifi=%s rssi=%d ip=%s quedasWifi=%u reqsHTTP=%u",
-        wifiStatusName(WiFi.status()), WiFi.RSSI(), WiFi.localIP().toString().c_str(), wifiDisconnectCount, apiRequestCount);
+    LOG("HEALTH", "wifi=%s rssi=%d ip=%s quedasWifi=%u reqsHTTP=%u reqsLog=%u",
+        wifiStatusName(WiFi.status()), WiFi.RSSI(), WiFi.localIP().toString().c_str(), wifiDisconnectCount, apiRequestCount, getLogsCount);
     LOG("HEALTH", "show(): clock=%u vezes/%ums  deco=%u vezes/%ums (tempo com interrupcoes desligadas)",
         showClockCount, showClockTotalMs, showDecoCount, showDecoTotalMs);
     LOG("HEALTH", "hora=%02d:%02d %02d/%02d/%04d temp=%d umid=%d chuva=%d ldrBrilho=%d noturno=%d alarmeTocando=%d modo=%d",
@@ -873,6 +909,83 @@ void getCss() {
 void getJs() {
     logRequest("getJs");
     streamFileLogged("/app.js", "application/javascript");
+}
+
+// Acrescenta uma string em formato JSON (com aspas e escapes) ao final de out
+void appendJsonString(String& out, const char* s) {
+    out += '"';
+    for (; *s; s++) {
+        char c = *s;
+        if (c == '"' || c == '\\') {
+            out += '\\';
+            out += c;
+        } else if ((uint8_t)c < 0x20) {
+            out += ' ';   // caracteres de controle (\n, \r, \t...) viram espaço
+        } else {
+            out += c;
+        }
+    }
+    out += '"';
+}
+
+// GET /getLogs?since=N
+// Retorna as linhas do buffer de log com número sequencial > N (since=0 ou ausente -> todas).
+// Resposta (JSON, enviada em pedaços para não alocar 8 KB de uma vez):
+//   { "seq": última linha, "first": mais antiga disponível, "uptime": s, "heap": bytes,
+//     "boot": nº do boot, "bootInfo": "...", "lines": ["...", ...] }
+// Esta rota NÃO passa por logRequest(): a interface consulta a cada poucos segundos
+// e isso encheria o próprio buffer de log com as requisições de log.
+
+void getLogsApi() {
+    getLogsCount++;
+
+    uint32_t since = 0;
+    if (serverWeb.hasArg("since")) since = strtoul(serverWeb.arg("since").c_str(), nullptr, 10);
+
+    const uint32_t last = logSeq;
+    const uint32_t first = last >= LOG_BUFFER_LINES ? last - LOG_BUFFER_LINES + 1 : 1;
+    if (since > last) since = 0;  // dispositivo reiniciou desde a última consulta
+    const uint32_t start = since + 1 > first ? since + 1 : first;
+
+    serverWeb.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    serverWeb.send(200, "application/json", "");
+
+    String chunk;
+    chunk.reserve(1200);
+    chunk = "{\"seq\":";
+    chunk += last;
+    chunk += ",\"first\":";
+    chunk += first;
+    chunk += ",\"uptime\":";
+    chunk += millis() / 1000;
+    chunk += ",\"heap\":";
+    chunk += ESP.getFreeHeap();
+    chunk += ",\"boot\":";
+    chunk += breadcrumb.bootCount;
+    chunk += ",\"bootInfo\":";
+    appendJsonString(chunk, bootSummary);
+    chunk += ",\"lines\":[";
+
+    bool firstItem = true;
+    char line[LOG_LINE_LEN];
+    for (uint32_t s = start; s <= last; s++) {
+        // Linha pode ter sido sobrescrita por um log gerado durante o envio (ex.: evento de WiFi)
+        if (logSeq - s >= LOG_BUFFER_LINES) continue;
+        memcpy(line, logBuffer[s % LOG_BUFFER_LINES], LOG_LINE_LEN);
+        line[LOG_LINE_LEN - 1] = '\0';
+
+        if (!firstItem) chunk += ',';
+        firstItem = false;
+        appendJsonString(chunk, line);
+
+        if (chunk.length() > 1000) {
+            serverWeb.sendContent(chunk);
+            chunk = "";
+        }
+    }
+    chunk += "]}";
+    serverWeb.sendContent(chunk);
+    serverWeb.sendContent("");  // finaliza a resposta chunked
 }
 
 void notFoundApi() {
@@ -1342,6 +1455,7 @@ void setup() {
     serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
     serverWeb.on("/setNightTime", setNightTimeApi);
     serverWeb.on("/setAlarm", setAlarmApi); // Nova rota registrada para configurar o alarme
+    serverWeb.on("/getLogs", HTTP_GET, getLogsApi);
     serverWeb.onNotFound(notFoundApi);
 
     serverWeb.enableCORS(true);

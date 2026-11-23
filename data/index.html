@@ -447,6 +447,50 @@
         </div>         
 
     </div><!-- /row -->
+
+    <!-- ── Device log ──────────────────────────────────────── -->
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <h6><i class="bi bi-terminal me-2"></i>Device Log</h6>
+
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input log-control" type="checkbox" id="logAutoRefresh" checked>
+                            <label class="form-check-label small" for="logAutoRefresh">Auto refresh</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input log-control" type="checkbox" id="logAutoScroll" checked>
+                            <label class="form-check-label small" for="logAutoScroll">Auto scroll</label>
+                        </div>
+                        <input type="search" class="form-control form-control-sm log-control log-filter"
+                               id="logFilter" placeholder="Filter..." aria-label="Filter log lines">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
+                                    id="btnLogRefresh" title="Refresh now">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
+                                    id="btnLogDownload" title="Download as .txt">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
+                                    id="btnLogClear" title="Clear view">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="log-boot" id="logBootInfo">Boot info: --</div>
+                    <div class="log-meta" id="logMeta">Waiting for device...</div>
+                    <div class="log-view" id="logView" role="log" aria-live="off"></div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /row -->
 </div><!-- /container -->
 
 <!-- ═══════════════════════════════════════════════ Scripts ══ -->

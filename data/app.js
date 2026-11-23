@@ -113,12 +113,13 @@ function applyDataMock() {
 	var d = loadDataMock();
 	setConn(true);
 	updateUi(d);
+	applyLogMock();
 }
 
 /* ── UI state helpers ────────────────────────────────── */
 function setControlsEnabled(enabled) {
 	document.getElementById('mainContainer')
-		.querySelectorAll('input, button')
+		.querySelectorAll('input:not(.log-control), button:not(.log-control)')
 		.forEach(function (el) { el.disabled = !enabled; });
 }
 
@@ -258,11 +259,208 @@ function bindEvents() {
 	document.querySelector('#btnAlarm').addEventListener('click', function (e) { setAlarm(e); });	
 }
 
+/* ── Device log ──────────────────────────────────────── */
+var LOG_POLL_MS   = 3000;   // intervalo do auto refresh
+var LOG_MAX_LINES = 1000;   // linhas mantidas no navegador (o ESP guarda só as últimas 50)
+
+var logState = {
+	seq: 0,          // última linha recebida (número sequencial do dispositivo)
+	uptime: null,    // uptime da última resposta (detecta reinício)
+	lines: [],       // texto das linhas exibidas (para download)
+	timer: null,
+	busy: false
+};
+
+function logLineClass(text) {
+	if (text.indexOf('!!!') >= 0) { return 'log-error'; }
+	if (/LENTO|AVISO|ATENCAO/.test(text)) { return 'log-warn'; }
+	if (text.indexOf('[HEALTH]') >= 0) { return 'log-health'; }
+	return '';
+}
+
+function logMatchesFilter(text, filter) {
+	return !filter || text.toLowerCase().indexOf(filter) >= 0;
+}
+
+function appendLogLines(lines, extraClass) {
+	if (!lines || lines.length === 0) { return; }
+
+	var view   = document.getElementById('logView');
+	var filter = document.getElementById('logFilter').value.trim().toLowerCase();
+	var frag   = document.createDocumentFragment();
+
+	lines.forEach(function (text) {
+		var div = document.createElement('div');
+		div.className   = 'log-line ' + (extraClass || logLineClass(text));
+		div.textContent = text;
+		div.hidden      = !logMatchesFilter(text, filter);
+		frag.appendChild(div);
+		logState.lines.push(text);
+	});
+	view.appendChild(frag);
+
+	while (logState.lines.length > LOG_MAX_LINES) {
+		logState.lines.shift();
+		view.removeChild(view.firstChild);
+	}
+
+	if (document.getElementById('logAutoScroll').checked) {
+		view.scrollTop = view.scrollHeight;
+	}
+}
+
+function applyLogFilter() {
+	var filter = document.getElementById('logFilter').value.trim().toLowerCase();
+	var view   = document.getElementById('logView');
+	Array.prototype.forEach.call(view.children, function (div) {
+		div.hidden = !logMatchesFilter(div.textContent, filter);
+	});
+}
+
+function formatUptime(seconds) {
+	var d = Math.floor(seconds / 86400);
+	var h = Math.floor((seconds % 86400) / 3600);
+	var m = Math.floor((seconds % 3600) / 60);
+	var s = seconds % 60;
+	return (d > 0 ? d + 'd ' : '') + h + 'h ' + m + 'm ' + s + 's';
+}
+
+function setLogMeta(text, isError) {
+	var meta = document.getElementById('logMeta');
+	meta.textContent = text;
+	meta.classList.toggle('log-meta-error', !!isError);
+}
+
+/* Retorna true quando é preciso consultar de novo (dispositivo reiniciou) */
+function handleLogResponse(d) {
+	if (logState.uptime !== null && d.uptime < logState.uptime) {
+		appendLogLines(['──────── device restarted ────────'], 'log-marker');
+		logState.seq    = 0;
+		logState.uptime = null;
+		return true;
+	}
+
+	// Linhas descartadas no ESP entre duas consultas (buffer circular de 50 linhas)
+	if (logState.seq > 0 && d.first > logState.seq + 1) {
+		var lost = d.first - logState.seq - 1;
+		appendLogLines(['… ' + lost + ' line(s) lost between refreshes …'], 'log-marker');
+	}
+
+	appendLogLines(d.lines);
+	logState.seq    = d.seq;
+	logState.uptime = d.uptime;
+
+	document.getElementById('logBootInfo').textContent = 'Boot info: ' + (d.bootInfo || '--');
+	setLogMeta('Device lines ' + d.first + '–' + d.seq +
+		' · uptime ' + formatUptime(d.uptime) +
+		' · free heap ' + d.heap + ' B' +
+		' · updated ' + new Date().toLocaleTimeString(), false);
+	return false;
+}
+
+function fetchLogs() {
+	if (logState.busy) { return; }
+	logState.busy = true;
+
+	var controller = new AbortController();
+	var timeout    = setTimeout(function () { controller.abort(); }, 8000);
+
+	fetch(`${baseUrl}/getLogs?since=${logState.seq}`, { signal: controller.signal, cache: 'no-store' })
+		.then(function (r) {
+			if (!r.ok) { throw new Error('HTTP ' + r.status); }
+			return r.json();
+		})
+		.then(function (d) {
+			if (handleLogResponse(d)) { setTimeout(fetchLogs, 0); }
+		})
+		.catch(function (err) {
+			var reason = err.name === 'AbortError' ? 'timeout' : err.message;
+			setLogMeta('Log unavailable (' + reason + ') · ' + new Date().toLocaleTimeString(), true);
+		})
+		.finally(function () {
+			clearTimeout(timeout);
+			logState.busy = false;
+		});
+}
+
+function scheduleLogPolling() {
+	if (logState.timer) {
+		clearInterval(logState.timer);
+		logState.timer = null;
+	}
+	if (document.getElementById('logAutoRefresh').checked) {
+		logState.timer = setInterval(function () {
+			if (!document.hidden) { fetchLogs(); }
+		}, LOG_POLL_MS);
+	}
+}
+
+function clearLogView() {
+	logState.lines = [];
+	document.getElementById('logView').innerHTML = '';
+}
+
+function downloadLog() {
+	var blob = new Blob([logState.lines.join('\n') + '\n'], { type: 'text/plain' });
+	var now  = new Date();
+	var pad  = function (n) { return String(n).padStart(2, '0'); };
+	var name = 'ledclock-log-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) +
+		'-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.txt';
+
+	var a = document.createElement('a');
+	a.href = URL.createObjectURL(blob);
+	a.download = name;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	URL.revokeObjectURL(a.href);
+}
+
+function applyLogMock() {
+	document.getElementById('logAutoRefresh').checked = false;
+	scheduleLogPolling();
+	clearLogView();
+	logState.seq    = 0;
+	logState.uptime = null;
+	handleLogResponse({
+		seq: 6, first: 1, uptime: 3725, heap: 31240, boot: 3,
+		bootInfo: "Boot #3 | Reset: Software Watchdog (exccause=4 epc1=0x40201234) | Anterior: checkpoint READ_TEMP_GET aos 3540112 ms, heap 28904, rota '/getInfo'",
+		lines: [
+			"[   3720.012] [HEALTH] uptime=3720s loops=48211 (4821/s) maiorGapLoop=12ms em SECOND_TICK loopsLentos=0",
+			"[   3720.015] [HEALTH] heap=31240 minHeap=28904 maiorBloco=29800 frag=4% stack=3120",
+			"[   3721.000] [DISP  ] Modo: TEMPERATURA",
+			"[   3721.004] [TEMP  ] GET retornou -11 (read Timeout) em 5003 ms",
+			"[   3721.005] [TEMP  ] !!! Codigo HTTP inesperado: -11",
+			"[   3721.006] [TEMP  ] LENTO: readTheTemperature() levou 5010 ms"
+		]
+	});
+}
+
+function bindLogEvents() {
+	document.getElementById('logAutoRefresh').addEventListener('change', function () {
+		scheduleLogPolling();
+		if (this.checked) { fetchLogs(); }
+	});
+	document.getElementById('logAutoScroll').addEventListener('change', function () {
+		if (this.checked) {
+			var view = document.getElementById('logView');
+			view.scrollTop = view.scrollHeight;
+		}
+	});
+	document.getElementById('logFilter').addEventListener('input', applyLogFilter);
+	document.getElementById('btnLogRefresh').addEventListener('click', fetchLogs);
+	document.getElementById('btnLogDownload').addEventListener('click', downloadLog);
+	document.getElementById('btnLogClear').addEventListener('click', clearLogView);
+}
+
 /* ── Entry point ─────────────────────────────────────── */
 function startup() {
 	setControlsEnabled(false);
 	bindEvents();
+	bindLogEvents();
 	loadData();
+	fetchLogs();
+	scheduleLogPolling();
 }
 
 startup();

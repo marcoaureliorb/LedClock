@@ -293,3 +293,50 @@ input[type="time"]:disabled {
 	.stat-value { font-size: 1.3rem; }
 	input[type="color"] { width: 36px; height: 36px; }
 }
+
+/* ── Device log ─────────────────────────────────────── */
+.log-filter {
+	width: 170px;
+}
+
+.log-boot {
+	font-size: 0.75rem;
+	color: var(--text);
+	background: var(--accent-light);
+	border-radius: 6px;
+	padding: 0.45rem 0.7rem;
+	margin-bottom: 0.6rem;
+	word-break: break-word;
+}
+
+.log-meta {
+	font-size: 0.72rem;
+	color: var(--text-muted);
+	margin-bottom: 0.5rem;
+}
+
+.log-meta.log-meta-error {
+	color: #D05252;
+}
+
+.log-view {
+	background: #1E1E1E;
+	color: #D4D4D4;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	height: 420px;
+	max-height: 60vh;
+	overflow: auto;
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+}
+
+.log-line {
+	white-space: pre;
+}
+
+.log-line.log-error  { color: #F48771; font-weight: 600; }
+.log-line.log-warn   { color: #DCDCAA; }
+.log-line.log-health { color: #9CDCFE; }
+.log-line.log-marker { color: #808080; font-style: italic; text-align: center; }
