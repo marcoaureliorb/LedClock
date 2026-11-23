@@ -178,6 +178,27 @@ function numeroDaIssueDoEvento(evento) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Obtem os dados da Issue para a triagem.
+ *
+ * Os eventos `issues` e `issue_comment` trazem a Issue inteira no payload. O
+ * `workflow_dispatch` nao traz nada: ali so existe o numero informado a mao, e
+ * ler `github.event.issue` devolveria titulo e rotulos vazios — a Issue seria
+ * classificada como "nao e um bug" por falta de dado, e nao por conteudo.
+ * Nesse caso, buscamos a Issue na API.
+ *
+ * @returns {Promise<{ bruta: object, origem: string }>}
+ */
+async function obterIssueParaTriagem({ evento, numero, cliente }) {
+  const doPayload = evento?.issue;
+
+  if (doPayload && Number(doPayload.number) === numero) {
+    return { bruta: doPayload, origem: 'do payload do evento' };
+  }
+
+  return { bruta: await cliente.obterIssue(numero), origem: 'da API do GitHub' };
+}
+
+/**
  * Decide se o evento deve disparar a analise.
  *
  * @returns {Promise<{ processar: boolean, numero: number|null, motivo: string }>}
@@ -187,13 +208,18 @@ export async function decidirTriagem({ evento, nomeDoEvento, configuracao, clien
 
   if (numero === null) return { processar: false, numero: null, motivo: 'evento sem numero de Issue valido' };
 
-  const issueBruta = evento?.issue ?? {};
+  const { bruta: issueBruta, origem } = await obterIssueParaTriagem({ evento, numero, cliente });
 
-  if (issueBruta.pull_request) {
+  if (issueBruta?.pull_request) {
     return { processar: false, numero, motivo: 'o evento e de um Pull Request, nao de uma Issue' };
   }
 
-  const issue = normalizarIssue(issueBruta, [], configuracao);
+  const issue = normalizarIssue(issueBruta ?? {}, [], configuracao);
+
+  log.info(
+    `Issue #${numero} lida ${origem}: titulo "${issue.titulo}", `
+      + `estado "${issue.estado}", rotulos [${issue.rotulos.join(', ')}].`,
+  );
 
   if (issue.estado !== 'open') {
     return { processar: false, numero, motivo: 'a Issue esta fechada' };
@@ -203,8 +229,10 @@ export async function decidirTriagem({ evento, nomeDoEvento, configuracao, clien
     return {
       processar: false,
       numero,
-      motivo: `a Issue nao e um bug (sem rotulo ${configuracao.rotulosDeBug.join('/')} `
-        + `e sem prefixo ${configuracao.prefixosDeTitulo.join('/')} no titulo: ${issue.titulo})`,
+      motivo: `a Issue nao e um bug: o titulo "${issue.titulo}" nao comeca com `
+        + `${configuracao.prefixosDeTitulo.join('/')} e os rotulos `
+        + `[${issue.rotulos.join(', ') || 'nenhum'}] nao incluem `
+        + `${configuracao.rotulosDeBug.join('/')}`,
     };
   }
 
@@ -268,7 +296,9 @@ export async function decidirTriagem({ evento, nomeDoEvento, configuracao, clien
     }
   }
 
-  return { processar: true, numero, motivo: `Issue de bug no evento "${nomeDoEvento}/${acao}"` };
+  const gatilho = acao === '' ? nomeDoEvento : `${nomeDoEvento}/${acao}`;
+
+  return { processar: true, numero, motivo: `Issue de bug no evento "${gatilho}"` };
 }
 
 async function executarTriagem() {
