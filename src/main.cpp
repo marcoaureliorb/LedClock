@@ -1393,6 +1393,227 @@ void handleAlarmRinging() {
 }
 
 // --------------------------------------------------------------------------------
+// --------------------------- ANIMAÇÃO DE INICIALIZAÇÃO --------------------------
+// --------------------------------------------------------------------------------
+// Sequência de ~4,5 s, bloqueante (delay() devolve o controle ao SDK e alimenta o watchdog):
+//   1. Cometa    - um ponto branco com cauda de arco-íris percorre todos os segmentos,
+//                  da esquerda para a direita, em duas voltas (a segunda mais rápida).
+//   2. Construção - os 28 segmentos acendem um a um formando "88:88"; cada um pisca
+//                  em branco antes de assumir sua cor do arco-íris.
+//   3. Turbilhão - o arco-íris gira pelos dígitos, acelerando.
+//   4. Explosão  - três estrobos brancos e um fade-out até apagar.
+// A decoração acompanha cada fase. O brilho nunca passa de ANIM_PEAK_BRIGHT, para a
+// fonte não ser exigida além do que o relógio já usa no modo ON.
+//
+// Som (buzzer): carga ascendente no cometa, um bip crescente por segmento na construção,
+// silêncio no turbilhão, bips nos estrobos e um acorde final (dó-mi-sol-dó) no fade.
+// Só toca fora do horário do Night Mode (ver startupSoundAllowed()).
+
+constexpr uint8_t  ANIM_PEAK_BRIGHT = BRIGHT_DEFAULT_VALUE;
+constexpr uint32_t ANIM_NTP_WAIT_MS = 5000;   // espera máxima pela hora do NTP antes de decidir o som
+bool animSoundOn = false;
+
+void animTone(uint16_t freq, uint32_t durationMs = 0) {
+    if (!animSoundOn) return;
+    if (durationMs) tone(BUZZER_PIN, freq, durationMs);
+    else            tone(BUZZER_PIN, freq);
+}
+
+void animSilence() {
+    noTone(BUZZER_PIN);
+}
+
+// Decide se o som da inicialização pode tocar: só fora do horário do Night Mode.
+// A hora vem do NTP, que pode ainda não ter sincronizado logo após o WiFi conectar;
+// esperamos até ANIM_NTP_WAIT_MS. Sem hora válida, fica em silêncio (pode ser madrugada).
+bool startupSoundAllowed() {
+    if (dadosLedClock.nightMode.enabled == 0) {
+        LOG("ANIM", "Som da inicializacao: liberado (Night Mode desativado)");
+        return true;
+    }
+
+    uint32_t t0 = millis();
+    readTheTime();
+    while (!timeSynced && millis() - t0 < ANIM_NTP_WAIT_MS) {
+        delay(100);
+        readTheTime();
+    }
+
+    if (!timeSynced) {
+        LOG("ANIM", "Som da inicializacao: mudo (hora NTP indisponivel apos %lu ms)", millis() - t0);
+        return false;
+    }
+
+    bool night = nightModeEnable();
+    LOG("ANIM", "Som da inicializacao: %s (hora %02d:%02d, Night Mode %02d:%02d-%02d:%02d)",
+        night ? "mudo" : "liberado",
+        dadosLedClockRuntimeData.time.hour, dadosLedClockRuntimeData.time.minute,
+        dadosLedClock.nightMode.start.hour, dadosLedClock.nightMode.start.minute,
+        dadosLedClock.nightMode.end.hour, dadosLedClock.nightMode.end.minute);
+    return !night;
+}
+constexpr uint8_t  ANIM_SEG_LEDS    = 9;                                  // LEDs por segmento
+constexpr uint8_t  ANIM_SEG_COUNT   = LED_CLOCK_COUNT / ANIM_SEG_LEDS;    // 28 segmentos
+constexpr uint8_t  ANIM_DECO_LINE   = LED_DECO_COUNT / 2;                 // 7 LEDs por linha
+constexpr uint8_t  ANIM_COMET_TAIL  = 24;
+
+// Posição "visual" (0 = LED mais à esquerda) -> índice na fita.
+// O primeiro dígito fica no fim da fita (IDX_FIRST_DIGIT = 189), então a ordem é invertida.
+uint16_t animPixel(uint16_t visual) {
+    return LED_CLOCK_COUNT - 1 - visual;
+}
+
+// Cor do arco-íris para uma posição visual, com deslocamento de matiz e intensidade.
+uint32_t animRainbow(uint16_t visual, uint16_t hueShift, uint8_t value) {
+    uint16_t hue = (uint32_t)visual * 65536UL / LED_CLOCK_COUNT + hueShift;
+    return stripClock.gamma32(stripClock.ColorHSV(hue, 255, value));
+}
+
+// Acende a mesma posição nas duas linhas da decoração.
+void animDecoMirror(uint8_t pos, uint32_t color) {
+    stripDeco.setPixelColor(pos, color);
+    stripDeco.setPixelColor(ANIM_DECO_LINE + pos, color);
+}
+
+void animShow(uint16_t frameMs) {
+    stripClock.show();
+    stripDeco.show();
+    delay(frameMs);
+}
+
+void animComet() {
+    const int total = LED_CLOCK_COUNT + ANIM_COMET_TAIL;   // a cauda precisa sair da fita
+
+    for (int lap = 0; lap < 2; lap++) {
+        const int step = (lap == 0) ? 3 : 6;
+        for (int head = 0; head < total; head += step) {
+            stripClock.clear();
+            for (int t = 0; t < ANIM_COMET_TAIL; t++) {
+                int v = head - t;
+                if (v < 0 || v >= LED_CLOCK_COUNT) continue;
+                uint8_t fade = 255 - (t * 255 / ANIM_COMET_TAIL);
+                uint32_t color = (t < 2) ? BRANCO : animRainbow(v, 0, (uint16_t)fade * fade / 255);
+                stripClock.setPixelColor(animPixel(v), color);
+            }
+
+            stripDeco.clear();
+            uint8_t decoPos = constrain(head * ANIM_DECO_LINE / LED_CLOCK_COUNT, 0, ANIM_DECO_LINE - 1);
+            animDecoMirror(decoPos, BRANCO);
+
+            // Som de "carga": a frequência sobe junto com o cometa (mais aguda na 2ª volta)
+            animTone(lap == 0 ? 300 + head * 1700 / total : 900 + head * 2100 / total);
+
+            animShow(4);
+        }
+    }
+    animSilence();
+}
+
+void animBuild() {
+    stripClock.clear();
+    stripDeco.clear();
+
+    for (int s = 0; s < ANIM_SEG_COUNT; s++) {
+        int firstVisual = s * ANIM_SEG_LEDS;
+
+        // Flash branco no segmento recém-aceso
+        for (int i = 0; i < ANIM_SEG_LEDS; i++) {
+            stripClock.setPixelColor(animPixel(firstVisual + i), BRANCO);
+        }
+        animTone(1000 + s * 60, 20);   // bip curto, mais agudo a cada segmento
+        animShow(25);
+
+        // Assume a cor do arco-íris daquela posição
+        for (int i = 0; i < ANIM_SEG_LEDS; i++) {
+            stripClock.setPixelColor(animPixel(firstVisual + i), animRainbow(firstVisual + i, 0, 255));
+        }
+
+        // Decoração enche junto com os segmentos
+        int decoLit = (s + 1) * ANIM_DECO_LINE / ANIM_SEG_COUNT;
+        for (int d = 0; d < decoLit; d++) {
+            animDecoMirror(d, stripDeco.gamma32(stripDeco.ColorHSV(d * 65536UL / ANIM_DECO_LINE, 255, 255)));
+        }
+        animShow(15);
+    }
+}
+
+void animSwirl() {
+    uint16_t hueShift = 0;
+    const int frames = 70;
+
+    for (int f = 0; f < frames; f++) {
+        hueShift += 400 + f * 40;   // gira cada vez mais rápido
+
+        for (int v = 0; v < LED_CLOCK_COUNT; v++) {
+            stripClock.setPixelColor(animPixel(v), animRainbow(v, hueShift, 255));
+        }
+        for (int d = 0; d < ANIM_DECO_LINE; d++) {
+            animDecoMirror(d, stripDeco.gamma32(stripDeco.ColorHSV(d * 65536UL / ANIM_DECO_LINE + hueShift, 255, 255)));
+        }
+        animShow(6);
+    }
+}
+
+void animBurst() {
+    for (int i = 0; i < 3; i++) {
+        stripClock.fill(BRANCO);
+        stripDeco.fill(BRANCO);
+        animTone(2400);
+        animShow(40);
+
+        stripClock.clear();
+        stripDeco.clear();
+        animSilence();
+        animShow(70);
+    }
+
+    // Acorde final tocado nota a nota durante o fade: dó6, mi6, sol6, dó7
+    const uint16_t FANFARE[] = {1047, 1319, 1568, 2093};
+    const int NOTE_STEPS = 4;   // passos do fade por nota
+
+    // setBrightness() reduz os valores já gravados no buffer de forma destrutiva,
+    // por isso a cor é redesenhada a cada passo do fade.
+    int step = 0;
+    for (int b = ANIM_PEAK_BRIGHT; b >= 0; b -= 2, step++) {
+        if (step % NOTE_STEPS == 0 && step / NOTE_STEPS < 4) animTone(FANFARE[step / NOTE_STEPS]);
+        if (step == 4 * NOTE_STEPS + 6) animSilence();   // a última nota soa um pouco mais
+
+        stripClock.setBrightness(b);
+        stripDeco.setBrightness(b);
+        stripClock.fill(BRANCO);
+        stripDeco.fill(BRANCO);
+        animShow(15);
+    }
+    animSilence();
+}
+
+void playStartupAnimation() {
+    CP(CP_INIT_ANIMATION);
+    animSoundOn = startupSoundAllowed();
+
+    LOG("ANIM", "Animacao de inicializacao: inicio (som %s)", animSoundOn ? "ligado" : "desligado");
+    uint32_t t0 = millis();
+
+    stripClock.setBrightness(ANIM_PEAK_BRIGHT);
+    stripDeco.setBrightness(ANIM_PEAK_BRIGHT);
+
+    animComet();
+    animBuild();
+    animSwirl();
+    animBurst();
+
+    stripClock.clear();
+    stripDeco.clear();
+    stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
+    stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
+    animShow(0);
+    animSilence();
+    animSoundOn = false;
+
+    LOG("ANIM", "Animacao de inicializacao: fim (%lu ms)", millis() - t0);
+}
+
+// --------------------------------------------------------------------------------
 // ------------------------------------ SETUP -------------------------------------
 // --------------------------------------------------------------------------------
 
@@ -1566,30 +1787,8 @@ void loop() {
     now = millis();
 
     if(inicializando){
-        CP(CP_INIT_ANIMATION);
-        LOG("LOOP", "Animacao de inicializacao: inicio");
-        uint32_t t0 = millis();
-        stripClock.setBrightness(BRIGHT_DEFAULT_VALUE);
-        stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE);
-
-        for (size_t i = 0; i < LED_CLOCK_COUNT; i++)
-        {
-            stripClock.clear();
-            stripClock.setPixelColor(i, BRANCO);
-            stripClock.show();
-            delay(10);
-        }
-
-        for (size_t i = 0; i < LED_DECO_COUNT; i++)
-        {
-            stripDeco.clear();
-            stripDeco.setPixelColor(i, BRANCO);
-            stripDeco.show();
-            delay(10);
-        }
-
+        playStartupAnimation();
         inicializando = false;
-        LOG("LOOP", "Animacao de inicializacao: fim (%lu ms)", millis() - t0);
         lastLoopEntryMs = millis();
     }
 
