@@ -12,6 +12,31 @@ Web interface to change the properties of clock.
 
  <img src=Images/Api_Config.png width="600" /><br/>
 
+## Configuração obrigatória: `include/secrets.h`
+
+As credenciais **não ficam no repositório**. Depois de clonar, crie o arquivo `include/secrets.h`
+a partir do modelo:
+
+```bash
+cp include/secrets.example.h include/secrets.h
+```
+
+Edite o `include/secrets.h` e preencha os campos:
+
+| Campo | O que é |
+|---|---|
+| `WIFI_SSID` | Nome da rede WiFi **2.4 GHz** (o ESP8266 não suporta 5 GHz) |
+| `WIFI_PASSWORD` | Senha da rede WiFi |
+| `OTA_PASSWORD` | Senha para atualizar firmware/interface pela tela (usuário fixo `admin`) |
+| `WEATHER_API_KEY` | Chave da API de clima da [HG Brasil](https://hgbrasil.com/status/weather) |
+| `WEATHER_WOEID` | Código da cidade na HG Brasil (temperatura, umidade e alerta de chuva) |
+
+Apague a linha `#define SECRETS_ARE_EXAMPLE 1`, que só existe no modelo.
+
+O `include/secrets.h` está no `.gitignore`. Sem ele o firmware ainda compila (usando o modelo, para
+o CI funcionar), mas a compilação mostra o aviso `include/secrets.h NAO ENCONTRADO` e o relógio
+não conecta ao WiFi.
+
 ## Build
 
 PlatformIO, ambiente `esp12e`:
@@ -20,7 +45,11 @@ PlatformIO, ambiente `esp12e`:
 pio run -e esp12e              # compila o firmware
 pio run -e esp12e -t upload    # grava no dispositivo
 pio run -e esp12e -t uploadfs  # grava a interface web (data/) no LittleFS
+pio run -e esp12e -t buildfs   # gera o littlefs.bin (para atualização OTA da interface)
 ```
+
+Depois da primeira gravação pelo USB, as próximas podem ser feitas pela rede, no card
+**Atualização OTA** da interface, enviando o `firmware.bin` ou o `littlefs.bin` de `.pio/build/esp12e/`.
 
 ## Automações de IA
 

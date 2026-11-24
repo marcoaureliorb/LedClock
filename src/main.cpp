@@ -17,6 +17,21 @@
 #include <time.h>
 #include <cmath>
 #include <user_interface.h>
+#include <Updater.h>
+#include <flash_hal.h>
+
+// Credenciais (WiFi, senha OTA, chave da API de clima) ficam em include/secrets.h,
+// fora do repositório. Veja include/secrets.example.h para os campos necessários.
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#warning "include/secrets.h NAO ENCONTRADO: usando include/secrets.example.h. O relogio NAO vai conectar ao WiFi. Copie o modelo para include/secrets.h e preencha."
+#include "secrets.example.h"
+#endif
+
+#if !defined(WIFI_SSID) || !defined(WIFI_PASSWORD) || !defined(OTA_PASSWORD) || !defined(WEATHER_API_KEY) || !defined(WEATHER_WOEID)
+#error "include/secrets.h incompleto: defina WIFI_SSID, WIFI_PASSWORD, OTA_PASSWORD, WEATHER_API_KEY e WEATHER_WOEID (veja include/secrets.example.h)."
+#endif
 
 // --------------------------------------------------------------------------------
 // ------------------------------------ LOG ---------------------------------------
@@ -212,9 +227,14 @@ constexpr uint16_t CONFIG_VERSION = 4;
 
 
 
-const char* ssid = "Biscoitao2.4G";
-const char* passPhrase = "4luci184";
-const String urlTemp = "http://api.hgbrasil.com/weather?woeid=455831&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name,condition_slug&key=3b983af0";
+const char* ssid = WIFI_SSID;
+const char* passPhrase = WIFI_PASSWORD;
+
+// Usuário exigido para gravar firmware/interface via OTA (rota /update); a senha é
+// OTA_PASSWORD, definida em secrets.h. A interface e a página de recuperação enviam "admin".
+const char* OTA_USER = "admin";
+const String urlTemp = "http://api.hgbrasil.com/weather?woeid=" WEATHER_WOEID
+    "&format=json-cors&array_limit=2&fields=only_results,temp,humidity,city_name,condition_slug&key=" WEATHER_API_KEY;
 
 // --------------------------------------------------------------------------------
 // --------------------------------- ESTRUTURAS -----------------------------------
@@ -900,13 +920,34 @@ void streamFileLogged(const char* path, const char* contentType) {
     file.close();
 }
 
+// Página de recuperação embutida no firmware: aparece quando o LittleFS não tem a interface
+// (ex.: gravação OTA do sistema de arquivos interrompida) e permite reenviar o littlefs.bin.
+const char RECOVERY_HTML[] PROGMEM = R"HTML(<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>LedClock - Recuperacao</title>
+<style>body{font-family:system-ui,sans-serif;background:#F8FAFC;color:#1E293B;max-width:28rem;margin:3rem auto;padding:0 1rem}
+div{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px}h1{font-size:18px}p{font-size:13px;color:#64748B}
+input,select,button{display:block;width:100%;margin:8px 0;padding:8px;font:inherit;box-sizing:border-box}
+button{background:#0F172A;color:#fff;border:0;border-radius:8px;cursor:pointer}progress{width:100%}</style></head><body><div>
+<h1>LedClock - Recuperacao</h1><p>A interface nao foi encontrada no sistema de arquivos. Envie o littlefs.bin (ou um firmware.bin).</p>
+<select id="t"><option value="fs">Interface (littlefs.bin)</option><option value="fw">Firmware (firmware.bin)</option></select>
+<input type="file" id="f" accept=".bin"><input type="password" id="p" placeholder="Senha OTA">
+<button onclick="go()">Enviar</button><progress id="g" value="0" max="100"></progress><p id="s"></p></div>
+<script>function go(){var f=document.getElementById('f').files[0],s=document.getElementById('s');if(!f){s.textContent='Escolha o arquivo.';return}
+var fd=new FormData();fd.append('file',f);var x=new XMLHttpRequest();
+x.open('POST','/update?target='+document.getElementById('t').value+'&size='+f.size);
+x.setRequestHeader('Authorization','Basic '+btoa('admin:'+document.getElementById('p').value));
+x.upload.onprogress=function(e){document.getElementById('g').value=e.loaded*100/e.total};
+x.onload=function(){if(x.status==200){s.textContent='Gravado. Reiniciando...';setTimeout(function(){location.reload()},15000)}
+else{try{s.textContent=JSON.parse(x.responseText).error}catch(e){s.textContent='Erro '+x.status}}};
+x.onerror=function(){s.textContent='Falha de conexao.'};x.send(fd)}</script></body></html>)HTML";
+
 void getIndex() {
     logRequest("getIndex");
     if (LittleFS.exists("/index.html")) {
         streamFileLogged("/index.html", "text/html");
     } else {
-        LOG("FS", "!!! /index.html nao encontrado -> 404");
-        serverWeb.send(404, "text/plain", "index nao encontrado");
+        LOG("FS", "!!! /index.html nao encontrado -> pagina de recuperacao");
+        serverWeb.send_P(200, "text/html", RECOVERY_HTML);
     }
 }
 
@@ -995,6 +1036,191 @@ void getLogsApi() {
     chunk += "]}";
     serverWeb.sendContent(chunk);
     serverWeb.sendContent("");  // finaliza a resposta chunked
+}
+
+// --------------------------------------------------------------------------------
+// ------------------------------------- OTA --------------------------------------
+// --------------------------------------------------------------------------------
+// Atualização pela interface web:
+//   GET  /otaInfo                      -> versão, espaço livre e se a senha enviada confere
+//   POST /update?target=fw|fs&size=N   -> multipart com o .bin (firmware.bin ou littlefs.bin)
+// As duas rotas validam a senha via HTTP Basic (OTA_USER / OTA_PASSWORD de secrets.h). A resposta 401 é
+// enviada SEM o cabeçalho WWW-Authenticate para o navegador não abrir a janela nativa de
+// login; a própria interface pede a senha.
+// A gravação acontece dentro de serverWeb.handleClient(), pedaço a pedaço; no fim o ESP reinicia.
+
+const char* FIRMWARE_BUILD = __DATE__ " " __TIME__;
+
+struct OtaState {
+    bool authorized = false;
+    bool isFs = false;
+    size_t expectedSize = 0;
+    size_t received = 0;
+    uint8_t lastProgressLed = 255;
+    String error;
+} ota;
+
+bool otaCheckAuth() {
+    return serverWeb.authenticate(OTA_USER, OTA_PASSWORD);
+}
+
+void otaSendCorsHeaders() {
+    serverWeb.sendHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    serverWeb.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+}
+
+// Pré-requisição CORS (só acontece quando a interface roda fora do ESP, ex.: servidor de dev)
+void otaOptionsApi() {
+    otaSendCorsHeaders();
+    serverWeb.send(204);
+}
+
+size_t otaMaxFirmwareSize() {
+    return (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+}
+
+size_t otaMaxFsSize() {
+    return (size_t)FS_end - (size_t)FS_start;
+}
+
+void otaInfoApi() {
+    logRequest("otaInfo");
+    otaSendCorsHeaders();
+
+    FSInfo fsInfo = {};
+    LittleFS.info(fsInfo);
+
+    String json;
+    json.reserve(200);
+    json = "{\"build\":\"";
+    json += FIRMWARE_BUILD;
+    json += "\",\"sketchSize\":";
+    json += ESP.getSketchSize();
+    json += ",\"maxFirmware\":";
+    json += otaMaxFirmwareSize();
+    json += ",\"maxFs\":";
+    json += otaMaxFsSize();
+    json += ",\"fsUsed\":";
+    json += fsInfo.usedBytes;
+    json += ",\"auth\":";
+    json += otaCheckAuth() ? "true" : "false";
+    json += "}";
+    serverWeb.send(200, "application/json", json);
+}
+
+// Progresso na decoração: os 14 LEDs acendem em ciano conforme o arquivo chega.
+void otaShowProgress() {
+    if (ota.expectedSize == 0) return;
+    uint8_t lit = (uint8_t)min((size_t)LED_DECO_COUNT, ota.received * LED_DECO_COUNT / ota.expectedSize);
+    if (lit == ota.lastProgressLed) return;
+    ota.lastProgressLed = lit;
+    stripDeco.clear();
+    for (uint8_t i = 0; i < lit; i++) stripDeco.setPixelColor(i, 0x00ffff);
+    stripDeco.show();
+}
+
+void otaFail(const char* where) {
+    StreamString msg;
+    Update.printError(msg);
+    ota.error = String(where) + ": " + msg.c_str();
+    ota.error.trim();
+    LOG("OTA", "!!! %s", ota.error.c_str());
+}
+
+// Chamado pelo servidor para cada pedaço do upload (início, dados, fim, abortado).
+void otaUploadHandler() {
+    HTTPUpload& up = serverWeb.upload();
+
+    switch (up.status) {
+        case UPLOAD_FILE_START: {
+            ota.authorized = otaCheckAuth();
+            ota.error = "";
+            ota.received = 0;
+            ota.lastProgressLed = 255;
+            ota.isFs = serverWeb.arg("target") == "fs";
+            ota.expectedSize = serverWeb.arg("size").toInt();
+
+            if (!ota.authorized) {
+                LOG("OTA", "!!! Upload recusado: senha invalida (arquivo '%s')", up.filename.c_str());
+                return;
+            }
+
+            size_t maxSize = ota.isFs ? otaMaxFsSize() : otaMaxFirmwareSize();
+            LOG("OTA", "Inicio: %s '%s' (%u bytes, maximo %u) heap=%u",
+                ota.isFs ? "INTERFACE (LittleFS)" : "FIRMWARE", up.filename.c_str(),
+                ota.expectedSize, maxSize, ESP.getFreeHeap());
+
+            if (ota.expectedSize > maxSize) {
+                ota.error = "Arquivo maior que o espaco disponivel";
+                LOG("OTA", "!!! %s", ota.error.c_str());
+                return;
+            }
+
+            // Apaga o mostrador durante a gravação; a decoração mostra o progresso.
+            stripClock.clear();
+            stripClock.show();
+
+            if (ota.isFs) LittleFS.end();   // o sistema de arquivos será sobrescrito
+            if (!Update.begin(maxSize, ota.isFs ? U_FS : U_FLASH)) otaFail("Update.begin");
+            break;
+        }
+
+        case UPLOAD_FILE_WRITE:
+            if (!ota.authorized || ota.error.length()) return;
+            if (Update.write(up.buf, up.currentSize) != up.currentSize) {
+                otaFail("Update.write");
+                return;
+            }
+            ota.received += up.currentSize;
+            otaShowProgress();
+            break;
+
+        case UPLOAD_FILE_END:
+            if (!ota.authorized || ota.error.length()) return;
+            if (Update.end(true)) {
+                LOG("OTA", "Gravacao concluida: %u bytes", up.totalSize);
+            } else {
+                otaFail("Update.end");
+            }
+            break;
+
+        case UPLOAD_FILE_ABORTED:
+            if (!ota.authorized) return;
+            Update.end();
+            ota.error = "Upload interrompido";
+            LOG("OTA", "!!! Upload interrompido apos %u bytes", ota.received);
+            break;
+    }
+    delay(0);
+}
+
+// Chamado depois que o upload terminou: responde e reinicia se deu certo.
+void otaFinishApi() {
+    logRequest("update");
+    otaSendCorsHeaders();
+
+    if (!ota.authorized) {
+        serverWeb.send(401, "application/json", "{\"error\":\"Senha incorreta\"}");
+        return;
+    }
+
+    if (ota.error.length()) {
+        if (ota.isFs) LittleFS.begin();   // volta a servir a interface atual
+        stripDeco.clear();
+        stripDeco.show();
+        String json = "{\"error\":";
+        appendJsonString(json, ota.error.c_str());
+        json += "}";
+        serverWeb.send(500, "application/json", json);
+        return;
+    }
+
+    LOG("OTA", "Reiniciando para aplicar a atualizacao");
+    serverWeb.client().setNoDelay(true);
+    serverWeb.send(200, "application/json", "{\"status\":\"OK\"}");
+    delay(200);
+    serverWeb.client().stop();
+    ESP.restart();
 }
 
 void notFoundApi() {
@@ -1660,6 +1886,9 @@ void setup() {
     delay(2000);
     display.setTextColor(SSD1306_WHITE);
 
+#ifdef SECRETS_ARE_EXAMPLE
+    LOG("SETUP", "!!! Firmware compilado SEM include/secrets.h: WiFi, senha OTA e API de clima sao valores de exemplo");
+#endif
     LOG("SETUP", "Conectando ao WiFi '%s'...", ssid);
     WiFi.mode(WIFI_STA);
     // Desliga a economia de energia do WiFi (modem sleep): reduz a latência das respostas
@@ -1720,6 +1949,10 @@ void setup() {
     serverWeb.on("/setNightTime", setNightTimeApi);
     serverWeb.on("/setAlarm", setAlarmApi); // Nova rota registrada para configurar o alarme
     serverWeb.on("/getLogs", HTTP_GET, getLogsApi);
+    serverWeb.on("/otaInfo", HTTP_GET, otaInfoApi);
+    serverWeb.on("/otaInfo", HTTP_OPTIONS, otaOptionsApi);
+    serverWeb.on("/update", HTTP_POST, otaFinishApi, otaUploadHandler);
+    serverWeb.on("/update", HTTP_OPTIONS, otaOptionsApi);
     serverWeb.onNotFound(notFoundApi);
 
     serverWeb.enableCORS(true);

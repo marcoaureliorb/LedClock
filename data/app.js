@@ -436,7 +436,8 @@ function handleLogResponse(d) {
 }
 
 function fetchLogs() {
-	if (logState.busy) { return; }
+	// Durante o OTA o ESP está ocupado gravando; consultas extras só atrasariam o upload
+	if (logState.busy || otaState.busy) { return; }
 	logState.busy = true;
 
 	var controller = new AbortController();
@@ -530,13 +531,254 @@ function bindLogEvents() {
 	document.getElementById('btnLogClear').addEventListener('click', clearLogView);
 }
 
+/* ── Atualização OTA ─────────────────────────────────── */
+var OTA_USER          = 'admin';   // mesmo usuário de OTA_USER no firmware
+var OTA_REBOOT_WAIT   = 4000;      // espera antes de começar a procurar o relógio de volta
+var OTA_REBOOT_POLL   = 2000;
+var OTA_REBOOT_LIMIT  = 60000;
+
+var otaState = {
+	target: 'fw',     // 'fw' = firmware.bin, 'fs' = littlefs.bin (interface)
+	file: null,
+	info: null,       // resposta de /otaInfo
+	busy: false
+};
+
+function formatKB(bytes) {
+	return (bytes / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' KB';
+}
+
+function otaAuthHeader() {
+	return 'Basic ' + btoa(OTA_USER + ':' + document.getElementById('otaPassword').value);
+}
+
+function setOtaStatus(text, kind) {
+	var el = document.getElementById('otaStatus');
+	el.textContent = text;
+	el.className = 'ota-status' + (kind ? ' ' + kind : '');
+}
+
+function setOtaProgress(percent, stage, kind) {
+	document.getElementById('otaProgressBox').classList.remove('d-none');
+	document.getElementById('otaStage').textContent = stage;
+	document.getElementById('otaPercent').textContent = Math.round(percent) + '%';
+	var bar = document.getElementById('otaBar');
+	bar.style.width = percent + '%';
+	bar.className = 'progress-bar' + (kind ? ' ' + kind : '');
+}
+
+function setOtaBusy(busy) {
+	otaState.busy = busy;
+	['otaSend', 'otaTargetFw', 'otaTargetFs', 'otaPassword', 'otaFile'].forEach(function (id) {
+		document.getElementById(id).disabled = busy;
+	});
+	document.getElementById('otaDrop').classList.toggle('disabled', busy);
+}
+
+function otaMaxSize() {
+	if (!otaState.info) { return null; }
+	return otaState.target === 'fs' ? otaState.info.maxFs : otaState.info.maxFirmware;
+}
+
+function renderOtaTarget() {
+	var fs = otaState.target === 'fs';
+	document.getElementById('otaTargetFw').classList.toggle('active', !fs);
+	document.getElementById('otaTargetFs').classList.toggle('active', fs);
+	var expected = document.getElementById('otaExpected');   // some quando há arquivo escolhido
+	if (expected) { expected.textContent = fs ? 'littlefs.bin' : 'firmware.bin'; }
+	document.getElementById('otaFileHint').textContent = fs
+		? 'Gere com "Build Filesystem Image" (pasta data/)'
+		: 'Gerado em .pio/build/esp12e/';
+	var max = otaMaxSize();
+	document.getElementById('otaLimit').textContent = max ? 'Máximo ' + formatKB(max) : '--';
+}
+
+function setOtaFile(file) {
+	otaState.file = file || null;
+	var drop = document.getElementById('otaDrop');
+	drop.classList.toggle('has-file', !!file);
+	document.getElementById('otaFileName').innerHTML = file
+		? '<strong></strong>'
+		: 'Escolha ou arraste o <strong id="otaExpected"></strong>';
+	if (file) {
+		document.querySelector('#otaFileName strong').textContent = file.name + ' · ' + formatKB(file.size);
+	}
+	renderOtaTarget();
+	setOtaStatus('');
+}
+
+function renderOtaInfo(info) {
+	otaState.info = info;
+	document.getElementById('otaBuild').textContent  = info.build;
+	document.getElementById('otaSketch').textContent = formatKB(info.sketchSize);
+	document.getElementById('otaFsUsed').textContent = formatKB(info.fsUsed);
+	renderOtaTarget();
+}
+
+function loadOtaInfo() {
+	return fetch(`${baseUrl}/otaInfo`, { cache: 'no-store' })
+		.then(function (r) { return r.json(); })
+		.then(renderOtaInfo)
+		.catch(function () { /* relógio offline: os campos ficam com "--" */ });
+}
+
+/* Confere se o arquivo combina com o tipo escolhido antes de enviar:
+   firmware do ESP8266 começa com o byte 0xE9; imagem LittleFS tem "littlefs" no byte 8. */
+function validateOtaFile(file) {
+	return file.slice(0, 16).arrayBuffer().then(function (buf) {
+		var bytes = new Uint8Array(buf);
+		var isFirmware = bytes[0] === 0xE9;
+		var isLittleFs = String.fromCharCode.apply(null, bytes.slice(8, 16)) === 'littlefs';
+
+		if (otaState.target === 'fw' && !isFirmware) {
+			return isLittleFs ? 'Este arquivo é uma imagem da interface. Selecione "Interface".'
+			                  : 'Arquivo não parece um firmware do ESP8266 (firmware.bin).';
+		}
+		if (otaState.target === 'fs' && !isLittleFs) {
+			return isFirmware ? 'Este arquivo é um firmware. Selecione "Firmware".'
+			                  : 'Arquivo não parece uma imagem LittleFS (littlefs.bin).';
+		}
+		var max = otaMaxSize();
+		if (max && file.size > max) {
+			return 'Arquivo de ' + formatKB(file.size) + ' é maior que o espaço disponível (' + formatKB(max) + ').';
+		}
+		return null;
+	});
+}
+
+/* Confere a senha antes de mandar o arquivo inteiro */
+function checkOtaPassword() {
+	return fetch(`${baseUrl}/otaInfo`, { cache: 'no-store', headers: { 'Authorization': otaAuthHeader() } })
+		.then(function (r) { return r.json(); })
+		.then(function (info) {
+			renderOtaInfo(info);
+			return info.auth;
+		});
+}
+
+function uploadOtaFile(file) {
+	return new Promise(function (resolve, reject) {
+		var form = new FormData();
+		form.append('file', file, file.name);
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', `${baseUrl}/update?target=${otaState.target}&size=${file.size}`);
+		xhr.setRequestHeader('Authorization', otaAuthHeader());
+		xhr.upload.onprogress = function (e) {
+			if (e.lengthComputable) { setOtaProgress(e.loaded * 100 / e.total, 'Enviando e gravando'); }
+		};
+		xhr.onload = function () {
+			if (xhr.status === 200) { resolve(); return; }
+			var msg = 'Erro HTTP ' + xhr.status;
+			try { msg = JSON.parse(xhr.responseText).error || msg; } catch (e) { /* resposta não-JSON */ }
+			reject(new Error(msg));
+		};
+		xhr.onerror = function () { reject(new Error('Conexão perdida durante o envio')); };
+		xhr.send(form);
+	});
+}
+
+/* Depois de gravar, o ESP reinicia: espera ele voltar a responder */
+function waitForReboot() {
+	var start = Date.now();
+	return new Promise(function (resolve, reject) {
+		function attempt() {
+			if (Date.now() - start > OTA_REBOOT_LIMIT) {
+				reject(new Error('O relógio não voltou a responder em 60 s. Recarregue a página em instantes.'));
+				return;
+			}
+			var controller = new AbortController();
+			var timeout = setTimeout(function () { controller.abort(); }, 1500);
+			fetch(`${baseUrl}/otaInfo`, { cache: 'no-store', signal: controller.signal })
+				.then(function (r) { return r.json(); })
+				.then(resolve)
+				.catch(function () { setTimeout(attempt, OTA_REBOOT_POLL); })
+				.finally(function () { clearTimeout(timeout); });
+		}
+		setTimeout(attempt, OTA_REBOOT_WAIT);
+	});
+}
+
+function startOtaUpdate() {
+	var file = otaState.file;
+	if (!file) { setOtaStatus('Escolha o arquivo .bin primeiro.', 'error'); return; }
+	if (!document.getElementById('otaPassword').value) { setOtaStatus('Informe a senha OTA.', 'error'); return; }
+
+	setOtaBusy(true);
+	setOtaStatus('Verificando arquivo e senha...');
+
+	validateOtaFile(file)
+		.then(function (problem) {
+			if (problem) { throw new Error(problem); }
+			return checkOtaPassword();
+		})
+		.then(function (ok) {
+			if (!ok) { throw new Error('Senha incorreta.'); }
+			setOtaStatus('Não feche esta página até o relógio reiniciar.');
+			setOtaProgress(0, 'Enviando e gravando');
+			return uploadOtaFile(file);
+		})
+		.then(function () {
+			setOtaProgress(100, 'Reiniciando o relógio', 'done');
+			setOtaStatus('Gravação concluída. Aguardando o relógio reiniciar...');
+			return waitForReboot();
+		})
+		.then(function (info) {
+			if (otaState.target === 'fs') {
+				setOtaStatus('Interface atualizada. Recarregando a página...', 'ok');
+				setTimeout(function () { location.reload(); }, 1000);
+				return;
+			}
+			renderOtaInfo(info);
+			setOtaStatus('Firmware atualizado (compilado em ' + info.build + ').', 'ok');
+			setOtaFile(null);
+			setOtaBusy(false);
+			loadData();
+		})
+		.catch(function (err) {
+			var reason = err.message === 'Failed to fetch' ? 'Relógio inacessível.' : err.message;
+			setOtaStatus(reason, 'error');
+			if (!document.getElementById('otaProgressBox').classList.contains('d-none')) {
+				setOtaProgress(parseFloat(document.getElementById('otaBar').style.width) || 0, 'Falhou', 'error');
+			}
+			setOtaBusy(false);
+		});
+}
+
+function bindOtaEvents() {
+	document.getElementById('otaTargetFw').addEventListener('click', function () { otaState.target = 'fw'; setOtaFile(otaState.file); });
+	document.getElementById('otaTargetFs').addEventListener('click', function () { otaState.target = 'fs'; setOtaFile(otaState.file); });
+	document.getElementById('otaFile').addEventListener('change', function () { setOtaFile(this.files[0]); });
+	document.getElementById('otaSend').addEventListener('click', startOtaUpdate);
+
+	var drop = document.getElementById('otaDrop');
+	['dragenter', 'dragover'].forEach(function (ev) {
+		drop.addEventListener(ev, function (e) {
+			e.preventDefault();
+			if (!otaState.busy) { drop.classList.add('dragover'); }
+		});
+	});
+	['dragleave', 'drop'].forEach(function (ev) {
+		drop.addEventListener(ev, function (e) {
+			e.preventDefault();
+			drop.classList.remove('dragover');
+		});
+	});
+	drop.addEventListener('drop', function (e) {
+		if (!otaState.busy && e.dataTransfer.files.length) { setOtaFile(e.dataTransfer.files[0]); }
+	});
+}
+
 /* ── Entry point ─────────────────────────────────────── */
 function startup() {
 	document.getElementById('deviceHost').textContent = window.location.host || 'arquivo local';
 	setControlsEnabled(false);
 	bindEvents();
 	bindLogEvents();
+	bindOtaEvents();
+	renderOtaTarget();
 	loadData();
+	loadOtaInfo();
 	fetchLogs();
 	scheduleLogPolling();
 }

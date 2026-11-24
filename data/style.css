@@ -555,6 +555,68 @@ input[type="color"].swatch-ring-indigo { box-shadow: 0 0 0 1px rgba(99, 102, 241
 .switch input:focus-visible + .switch-track { box-shadow: 0 0 0 2px var(--indigo-300); }
 .switch input:disabled + .switch-track { opacity: 0.45; cursor: not-allowed; }
 
+/* ── Atualização OTA ────────────────────────────────── */
+.mt-3 { margin-top: 16px; }
+
+.ota-facts { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 12px; color: var(--n500); }
+.ota-facts strong { color: var(--n800); font-weight: 600; margin-left: 4px; }
+
+.ota-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 768px) { .ota-grid { grid-template-columns: 3fr 2fr; } }
+.ota-side { justify-content: flex-end; }
+
+.segmented-2 { grid-template-columns: repeat(2, 1fr); }
+
+.dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	min-height: 132px;
+	padding: 20px;
+	text-align: center;
+	font-size: 13px;
+	color: var(--n600);
+	background: var(--n50);
+	border: 2px dashed var(--n300);
+	border-radius: 12px;
+	cursor: pointer;
+	transition: border-color 0.15s, background 0.15s;
+}
+.dropzone:hover, .dropzone.dragover { border-color: var(--cyan-500); background: var(--cyan-50); }
+.dropzone.has-file { border-style: solid; border-color: var(--cyan-500); }
+.dropzone .bi { font-size: 28px; color: var(--cyan-600); }
+.dropzone input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dropzone.disabled { opacity: 0.45; cursor: not-allowed; }
+
+.progress-track { height: 8px; border-radius: 999px; background: var(--n100); overflow: hidden; }
+.progress-bar { height: 100%; width: 0; background: var(--cyan-500); border-radius: 999px; transition: width 0.2s; }
+.progress-bar.done  { background: var(--emerald-500); }
+.progress-bar.error { background: var(--rose-500); }
+
+.ota-status { font-size: 12px; color: var(--n500); min-height: 18px; }
+.ota-status.ok    { color: var(--emerald-700); }
+.ota-status.error { color: var(--rose-600); font-weight: 500; }
+
+.btn-dark {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 10px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #fff;
+	background: var(--n900);
+	border: none;
+	border-radius: 8px;
+	transition: background 0.15s;
+}
+.btn-dark:hover:not(:disabled) { background: var(--n700); }
+.btn-dark:disabled { opacity: 0.45; }
+
 /* ── Console de log ─────────────────────────────────── */
 .console {
 	border: 1px solid var(--n200);

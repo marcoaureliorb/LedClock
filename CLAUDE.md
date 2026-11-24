@@ -26,7 +26,7 @@ The firmware is an Arduino sketch for ESP8266. There is no automated build comma
 
 - Board: `esp8266:esp8266:nodemcuv2`
 - Required libraries: `NTPClient`, `Arduino_JSON`, `Adafruit NeoPixel`, `ESP8266WiFi`, `ESP8266WebServer`, `ESP8266HTTPClient`
-- Configure WiFi credentials in `Firmware/secrets.h` before flashing
+- Configure credentials in `include/secrets.h` before flashing (gitignored; copy from `include/secrets.example.h`, which lists the required fields: `WIFI_SSID`, `WIFI_PASSWORD`, `OTA_PASSWORD`, `WEATHER_API_KEY`, `WEATHER_WOEID`). Never hardcode credentials in `src/main.cpp`.
 
 ## WebApi Dev Server
 

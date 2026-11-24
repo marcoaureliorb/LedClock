@@ -385,6 +385,59 @@
         </div>
     </section>
 
+    <!-- ── Atualização OTA ─────────────────────────────────── -->
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <h3 class="section-title"><i class="bi bi-cloud-arrow-up c-cyan-d"></i>Atualização OTA</h3>
+                <p class="muted-sm mt-1">Grave um novo firmware ou uma nova interface pela rede, sem cabo USB.</p>
+            </div>
+            <div class="ota-facts">
+                <span>Firmware atual <strong class="mono" id="otaBuild">--</strong></span>
+                <span>Tamanho <strong class="mono" id="otaSketch">--</strong></span>
+                <span>Interface em uso <strong class="mono" id="otaFsUsed">--</strong></span>
+            </div>
+        </div>
+
+        <div class="ota-grid">
+            <div class="stack-sm">
+                <div>
+                    <div class="field-head"><span>O que atualizar</span><span class="muted" id="otaLimit">--</span></div>
+                    <div class="segmented segmented-2" role="group" aria-label="Tipo de atualização">
+                        <button type="button" class="seg-btn active" id="otaTargetFw">Firmware</button>
+                        <button type="button" class="seg-btn" id="otaTargetFs">Interface</button>
+                    </div>
+                </div>
+
+                <label class="dropzone" id="otaDrop">
+                    <input type="file" id="otaFile" accept=".bin">
+                    <i class="bi bi-file-earmark-binary"></i>
+                    <span id="otaFileName">Escolha ou arraste o <strong id="otaExpected">firmware.bin</strong></span>
+                    <span class="muted-sm" id="otaFileHint">Gerado em .pio/build/esp12e/</span>
+                </label>
+            </div>
+
+            <div class="stack-sm ota-side">
+                <div>
+                    <label class="field-label" for="otaPassword">Senha OTA</label>
+                    <input type="password" class="input" id="otaPassword" autocomplete="current-password" placeholder="Senha definida no firmware">
+                </div>
+
+                <div class="ota-progress d-none" id="otaProgressBox">
+                    <div class="field-head"><span id="otaStage">Enviando</span><span class="mono" id="otaPercent">0%</span></div>
+                    <div class="progress-track"><div class="progress-bar" id="otaBar"></div></div>
+                </div>
+
+                <p class="ota-status" id="otaStatus" role="status"></p>
+
+                <button type="button" class="btn-dark" id="otaSend">
+                    <i class="bi bi-upload"></i>Enviar atualização
+                </button>
+            </div>
+        </div>
+        <div class="hint mt-3"><i class="bi bi-info-circle"></i>Durante a gravação o mostrador apaga e a decoração acende conforme o progresso. Ao terminar, o relógio reinicia sozinho.</div>
+    </section>
+
     <!-- ── Log do dispositivo ──────────────────────────────── -->
     <section class="console">
         <div class="console-bar">
