@@ -16,7 +16,7 @@ function loadDataMock() {
     "tempColor": [16711680,16711680,16777215,16777215],
     "humidityColor": [16776960,16776960,16777215,16777215],
     "decoColor": [16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215,16777215],
-    "brightnessMode": { "clock": 1, "deco": 1, "brightValue": 200 },
+    "brightnessMode": { "clock": 1, "deco": 3, "brightValue": 200, "clockManual": 50, "decoManual": 120 },
     "nightMode": {"enable": 1, "start": { "hour": 0, "minute": 0 }, "end": { "hour": 5, "minute": 30} },
 	"alarm": {"enable": 0, "hour": 0, "minute": 0 },
 	"umbrellaAlert": 0
@@ -67,6 +67,10 @@ function setColorToDigit(event, api, digit) {
 
 function setBrightnessState(event, api, mode) {
 	get(`${baseUrl}/${api}?p=${mode}`);
+}
+
+function setManualBrightness(target, value) {
+	get(`${baseUrl}/setManualBrightness?t=${target}&v=${value}`);
 }
 
 function setNightTime(event) {
@@ -140,7 +144,8 @@ function updateUiColorInt(id, cor) {
 	document.getElementById(id).value = hex;
 }
 
-/* active/inactive toggle for 3-button groups (ON / OFF / AUTO) */
+/* active/inactive toggle for brightness groups (ON / OFF / AUTO / MANUAL).
+   ids = [on, off, auto, manual]; a linha da barra manual tem id "<manualId>Row". */
 function changeBrightState(ids, valor) {
 	ids.forEach(function (id) {
 		if (!id) { return; }
@@ -151,11 +156,24 @@ function changeBrightState(ids, valor) {
 	if (valor === 0) { target = ids[1]; }  // OFF
 	if (valor === 1) { target = ids[0]; }  // ON
 	if (valor === 2) { target = ids[2]; }  // AUTO
+	if (valor === 3) { target = ids[3]; }  // MANUAL
 	if (target) {
 		document.getElementById(target).classList.remove('btn-outline-secondary');
 		document.getElementById(target).classList.add('btn-success');
 	}
+	if (ids[3]) {
+		document.getElementById(ids[3] + 'Row').classList.toggle('d-none', valor !== 3);
+	}
 }
+
+function updateUiManualBrightness(prefix, value) {
+	if (value === undefined || value === null) { return; }
+	document.getElementById(prefix + 'Range').value = value;
+	document.getElementById(prefix + 'Value').textContent = value;
+}
+
+var CLOCK_BS_IDS = ['idCBSOn', 'idCBSOff', 'idCBSAuto', 'idCBSManual'];
+var DECO_BS_IDS  = ['idDBSOn', 'idDBSOff', 'idDBSAuto', 'idDBSManual'];
 
 /* ── Update full UI from API response ────────────────── */
 function updateUi(d) {
@@ -188,8 +206,10 @@ function updateUi(d) {
 	updateUiColorInt('humidityFirstSymbolColor',   d['humidityColor'][2]);
 	updateUiColorInt('humiditySecondSymbolColor',  d['humidityColor'][3]);
 
-	changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], d['brightnessMode']['clock']);
-	changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], d['brightnessMode']['deco']);
+	updateUiManualBrightness('idCBSManual', d['brightnessMode']['clockManual']);
+	updateUiManualBrightness('idDBSManual', d['brightnessMode']['decoManual']);
+	changeBrightState(CLOCK_BS_IDS, d['brightnessMode']['clock']);
+	changeBrightState(DECO_BS_IDS,  d['brightnessMode']['deco']);
 
 	for (var i = 0; i < 14; i++) {
 		updateUiColorInt('favDLC' + (i + 1), d['decoColor'][i]);
@@ -243,14 +263,25 @@ function bindEvents() {
 	document.querySelector('#applyLine2All').addEventListener('click', function (e) { applyDecoColorAll(e, 2); });
 
 	// Clock brightness
-	document.querySelector('#idCBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'ON');   changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 1); });
-	document.querySelector('#idCBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'OFF');  changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 0); });
-	document.querySelector('#idCBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'AUTO'); changeBrightState(['idCBSOn', 'idCBSOff', 'idCBSAuto'], 2); });
+	document.querySelector('#idCBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'ON');   changeBrightState(CLOCK_BS_IDS, 1); });
+	document.querySelector('#idCBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'OFF');  changeBrightState(CLOCK_BS_IDS, 0); });
+	document.querySelector('#idCBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setClockBrightnessState', 'AUTO'); changeBrightState(CLOCK_BS_IDS, 2); });
+	// MANUAL apenas exibe a barra; o envio ao ESP acontece quando o valor é escolhido
+	document.querySelector('#idCBSManual').addEventListener('click', function () { changeBrightState(CLOCK_BS_IDS, 3); });
 
 	// Decoration brightness
-	document.querySelector('#idDBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'ON');   changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 1); });
-	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 0); });
-	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(['idDBSOn', 'idDBSOff', 'idDBSAuto'], 2); });
+	document.querySelector('#idDBSOn')  .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'ON');   changeBrightState(DECO_BS_IDS, 1); });
+	document.querySelector('#idDBSOff') .addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'OFF');  changeBrightState(DECO_BS_IDS, 0); });
+	document.querySelector('#idDBSAuto').addEventListener('click', function (e) { setBrightnessState(e, 'setDecoBrightnessState', 'AUTO'); changeBrightState(DECO_BS_IDS, 2); });
+	document.querySelector('#idDBSManual').addEventListener('click', function () { changeBrightState(DECO_BS_IDS, 3); });
+
+	// Barras de brilho manual: atualiza o número enquanto arrasta e envia ao ESP ao soltar
+	[['idCBSManual', 'clock'], ['idDBSManual', 'deco']].forEach(function (cfg) {
+		var range = document.getElementById(cfg[0] + 'Range');
+		var label = document.getElementById(cfg[0] + 'Value');
+		range.addEventListener('input',  function () { label.textContent = range.value; });
+		range.addEventListener('change', function () { setManualBrightness(cfg[1], range.value); });
+	});
 
     // Night mode
 	document.querySelector('#setNightTime').addEventListener('click', function (e) { setNightTime(e); });

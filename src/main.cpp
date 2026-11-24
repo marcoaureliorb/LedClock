@@ -172,6 +172,7 @@ constexpr uint8_t BRIGHT_DEFAULT_VALUE = 50;
 constexpr uint8_t OFF = 0;
 constexpr uint8_t ON = 1;
 constexpr uint8_t AUTO = 2;
+constexpr uint8_t MANUAL = 3;
 
 constexpr uint8_t  LED_CLOCK_COUNT = 252;
 constexpr uint8_t  LED_DECO_COUNT = 14;
@@ -206,7 +207,7 @@ constexpr uint32_t CONFIG_MAGIC = 0xCAFEBABE;
   2: Adicionado alarm
   3: Adicionado aviso de chuva
 */
-constexpr uint16_t CONFIG_VERSION = 3;
+constexpr uint16_t CONFIG_VERSION = 4;
 
 
 
@@ -239,6 +240,8 @@ struct Date {
 struct BrightnessMode {
     int clockMode;
     int decoMode;
+    int clockManualValue; // 0..255, usado quando clockMode == MANUAL
+    int decoManualValue;  // 0..255, usado quando decoMode == MANUAL
 };
 
 struct AlarmConfig {
@@ -344,6 +347,7 @@ void setDecoColorAllApi();
 void setHumidityColorApi();
 void setClockBrightnessStateApi();
 void setDecoBrightnessStateApi();
+void setManualBrightnessApi();
 void setNightTimeApi();
 void setAlarmApi();
 void readTheTime();
@@ -385,6 +389,7 @@ const char* modeName(int mode) {
         case OFF:  return "OFF";
         case ON:   return "ON";
         case AUTO: return "AUTO";
+        case MANUAL: return "MANUAL";
         default:   return "INVALIDO";
     }
 }
@@ -459,6 +464,8 @@ void logConfig(const char* where) {
     LOG("CONFIG", "brightness: clock=%s(%d) deco=%s(%d)",
         modeName(dadosLedClock.brightnessMode.clockMode), dadosLedClock.brightnessMode.clockMode,
         modeName(dadosLedClock.brightnessMode.decoMode), dadosLedClock.brightnessMode.decoMode);
+    LOG("CONFIG", "brightness manual: clock=%d deco=%d",
+        dadosLedClock.brightnessMode.clockManualValue, dadosLedClock.brightnessMode.decoManualValue);
     LOG("CONFIG", "nightMode: enabled=%d %02d:%02d -> %02d:%02d", dadosLedClock.nightMode.enabled,
         dadosLedClock.nightMode.start.hour, dadosLedClock.nightMode.start.minute,
         dadosLedClock.nightMode.end.hour, dadosLedClock.nightMode.end.minute);
@@ -604,6 +611,8 @@ bool loadConfig() {
 void setBrightnessModeDefault(){
     dadosLedClock.brightnessMode.clockMode = ON;
     dadosLedClock.brightnessMode.decoMode = ON;
+    dadosLedClock.brightnessMode.clockManualValue = BRIGHT_DEFAULT_VALUE;
+    dadosLedClock.brightnessMode.decoManualValue = BRIGHT_DEFAULT_VALUE;
 }
 
 void loadConfigurationDefault() {
@@ -1025,6 +1034,8 @@ String getConfigClock() {
     bm["clock"] = dadosLedClock.brightnessMode.clockMode;
     bm["deco"] = dadosLedClock.brightnessMode.decoMode;
     bm["brightValue"] = dadosLedClockRuntimeData.brightValue;
+    bm["clockManual"] = dadosLedClock.brightnessMode.clockManualValue;
+    bm["decoManual"] = dadosLedClock.brightnessMode.decoManualValue;
 
     JsonObject nm = doc.createNestedObject("nightMode");
     nm["enable"] = dadosLedClock.nightMode.enabled;
@@ -1062,6 +1073,37 @@ void setDecoBrightnessStateApi() {
 
     String response = "{\"Status\" : \"OK\"}";
     serverWeb.send(200, "application/json", response);
+    saveConfig();
+}
+
+// Brilho manual: t=clock|deco, v=0..255. Coloca a fita indicada em modo MANUAL com o valor recebido.
+void setManualBrightnessApi() {
+    logRequest("setManualBrightness");
+    if (!serverWeb.hasArg("t") || !serverWeb.hasArg("v")) {
+        LOG("API", "setManualBrightness: parametros faltando -> 400");
+        serverWeb.send(400, "application/json", "{\"error\": \"Parâmetros t e v são obrigatórios\"}");
+        return;
+    }
+
+    String target = serverWeb.arg("t");
+    target.toLowerCase();
+    int value = constrain(serverWeb.arg("v").toInt(), 0, 255);
+
+    if (target == "clock") {
+        dadosLedClock.brightnessMode.clockMode = MANUAL;
+        dadosLedClock.brightnessMode.clockManualValue = value;
+    } else if (target == "deco") {
+        dadosLedClock.brightnessMode.decoMode = MANUAL;
+        dadosLedClock.brightnessMode.decoManualValue = value;
+    } else {
+        LOG("API", "setManualBrightness: alvo invalido '%s' -> 400", target.c_str());
+        serverWeb.send(400, "application/json", "{\"error\": \"Parâmetro t deve ser clock ou deco\"}");
+        return;
+    }
+
+    LOG("API", "Brilho MANUAL de %s -> %d", target.c_str(), value);
+
+    serverWeb.send(200, "application/json", "{\"Status\": \"OK\"}");
     saveConfig();
 }
 
@@ -1453,6 +1495,7 @@ void setup() {
     serverWeb.on("/setDecoColorAll", setDecoColorAllApi);
     serverWeb.on("/setClockBrightnessState", setClockBrightnessStateApi);
     serverWeb.on("/setDecoBrightnessState", setDecoBrightnessStateApi);
+    serverWeb.on("/setManualBrightness", setManualBrightnessApi);
     serverWeb.on("/setNightTime", setNightTimeApi);
     serverWeb.on("/setAlarm", setAlarmApi); // Nova rota registrada para configurar o alarme
     serverWeb.on("/getLogs", HTTP_GET, getLogsApi);
@@ -1662,6 +1705,7 @@ void loop() {
                 case OFF:  stripDeco.setBrightness(0); break;
                 case ON:   stripDeco.setBrightness(BRIGHT_DEFAULT_VALUE); break;
                 case AUTO:  stripDeco.setBrightness(dadosLedClockRuntimeData.brightValue); break;
+                case MANUAL: stripDeco.setBrightness(dadosLedClock.brightnessMode.decoManualValue); break;
                 default: LOG("LED", "!!! decoMode invalido: %d", dadosLedClock.brightnessMode.decoMode); break;
             }
 
@@ -1669,6 +1713,7 @@ void loop() {
                 case OFF:  stripClock.setBrightness(0); break;
                 case ON:   stripClock.setBrightness(BRIGHT_DEFAULT_VALUE); break;
                 case AUTO: stripClock.setBrightness(dadosLedClockRuntimeData.brightValue); break;
+                case MANUAL: stripClock.setBrightness(dadosLedClock.brightnessMode.clockManualValue); break;
                 default: LOG("LED", "!!! clockMode invalido: %d", dadosLedClock.brightnessMode.clockMode); break;
             }
 

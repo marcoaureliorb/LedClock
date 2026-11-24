@@ -361,7 +361,17 @@
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSAuto">
                                 <i class="bi bi-magic me-1"></i>AUTO
                             </button>
+                            <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSManual">
+                                <i class="bi bi-sliders me-1"></i>MANUAL
+                            </button>
                         </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 d-none" id="idCBSManualRow">
+                        <span class="color-row-label"></span>
+                        <input type="range" class="form-range brightness-range flex-grow-1" min="0" max="255" step="1" value="50"
+                               id="idCBSManualRange" aria-label="Clock manual brightness">
+                        <span class="brightness-value" id="idCBSManualValue">50</span>
                     </div>
 
                     <hr class="section-divider my-0">
@@ -378,7 +388,17 @@
                             <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSAuto">
                                 <i class="bi bi-magic me-1"></i>AUTO
                             </button>
+                            <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSManual">
+                                <i class="bi bi-sliders me-1"></i>MANUAL
+                            </button>
                         </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 d-none" id="idDBSManualRow">
+                        <span class="color-row-label"></span>
+                        <input type="range" class="form-range brightness-range flex-grow-1" min="0" max="255" step="1" value="50"
+                               id="idDBSManualRange" aria-label="Decoration manual brightness">
+                        <span class="brightness-value" id="idDBSManualValue">50</span>
                     </div>
 
                 </div>

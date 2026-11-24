@@ -190,6 +190,20 @@ input[type="time"]:disabled {
 	box-shadow: none !important;
 }
 
+/* Manual brightness slider */
+.brightness-range {
+	accent-color: var(--accent);
+	min-width: 120px;
+}
+
+.brightness-value {
+	min-width: 2.5rem;
+	text-align: right;
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
 /* Primary action button */
 .btn-primary {
 	background: var(--accent) !important;
