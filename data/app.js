@@ -131,8 +131,13 @@ function setConn(ok) {
 	var dot   = document.getElementById('connDot');
 	var label = document.getElementById('connLabel');
 	dot.className     = 'conn-dot ' + (ok ? 'ok' : 'error');
-	label.textContent = ok ? 'CONNECTED' : 'OFFLINE';
+	label.textContent = ok ? 'Online' : 'Offline';
+	document.getElementById('connBadge').className = 'conn-badge ' + (ok ? 'ok' : 'error');
 	setControlsEnabled(ok);
+}
+
+function pad2(n) {
+	return String(n).padStart(2, '0');
 }
 
 function updateUiColorHex(id, cor) {
@@ -144,26 +149,18 @@ function updateUiColorInt(id, cor) {
 	document.getElementById(id).value = hex;
 }
 
-/* active/inactive toggle for brightness groups (ON / OFF / AUTO / MANUAL).
-   ids = [on, off, auto, manual]; a linha da barra manual tem id "<manualId>Row". */
-function changeBrightState(ids, valor) {
-	ids.forEach(function (id) {
-		if (!id) { return; }
-		document.getElementById(id).classList.remove('btn-success');
-		document.getElementById(id).classList.add('btn-outline-secondary');
+/* Controle segmentado de brilho (OFF / ON / AUTO / MAN).
+   g = { on, off, auto, manual, label }: ids dos elementos do grupo.
+   A linha da barra manual tem id "<manual>Row". */
+var BRIGHT_MODE_LABELS = ['Desligado', 'Ligado', 'Automático (LDR)', 'Manual'];
+
+function changeBrightState(g, valor) {
+	var byMode = [g.off, g.on, g.auto, g.manual];   // índice = valor do modo no firmware
+	byMode.forEach(function (id, mode) {
+		document.getElementById(id).classList.toggle('active', mode === valor);
 	});
-	var target = null;
-	if (valor === 0) { target = ids[1]; }  // OFF
-	if (valor === 1) { target = ids[0]; }  // ON
-	if (valor === 2) { target = ids[2]; }  // AUTO
-	if (valor === 3) { target = ids[3]; }  // MANUAL
-	if (target) {
-		document.getElementById(target).classList.remove('btn-outline-secondary');
-		document.getElementById(target).classList.add('btn-success');
-	}
-	if (ids[3]) {
-		document.getElementById(ids[3] + 'Row').classList.toggle('d-none', valor !== 3);
-	}
+	document.getElementById(g.manual + 'Row').classList.toggle('d-none', valor !== 3);
+	document.getElementById(g.label).textContent = BRIGHT_MODE_LABELS[valor] || '--';
 }
 
 function updateUiManualBrightness(prefix, value) {
@@ -172,19 +169,40 @@ function updateUiManualBrightness(prefix, value) {
 	document.getElementById(prefix + 'Value').textContent = value;
 }
 
-var CLOCK_BS_IDS = ['idCBSOn', 'idCBSOff', 'idCBSAuto', 'idCBSManual'];
-var DECO_BS_IDS  = ['idDBSOn', 'idDBSOff', 'idDBSAuto', 'idDBSManual'];
+var CLOCK_BS_IDS = { on: 'idCBSOn', off: 'idCBSOff', auto: 'idCBSAuto', manual: 'idCBSManual', label: 'idCBSLabel' };
+var DECO_BS_IDS  = { on: 'idDBSOn', off: 'idDBSOff', auto: 'idDBSAuto', manual: 'idDBSManual', label: 'idDBSLabel' };
+
+/* Ativo/inativo nos cards escuros do mostrador */
+function setDisplayOnOff(id, on) {
+	var el = document.getElementById(id);
+	el.textContent = on ? 'ON' : 'OFF';
+	el.classList.toggle('c-on', on);
+	el.classList.toggle('glow', on);
+	el.classList.toggle('c-off', !on);
+}
+
+function weekdayName(day, month, year) {
+	var name = new Date(year, month - 1, day).toLocaleDateString('pt-BR', { weekday: 'long' });
+	return name.charAt(0).toUpperCase() + name.slice(1);
+}
 
 /* ── Update full UI from API response ────────────────── */
 function updateUi(d) {
-	document.getElementById('brightnessSensorMap').innerHTML = d['brightnessMode']['brightValue'];
-	document.getElementById('temperature').innerHTML         = d['temperature'] + ' °C';
-	document.getElementById('humidity').innerHTML            = d['humidity'] + ' %';	
-	document.getElementById('time').innerHTML                = d['time']['hour'].toString().padStart(2, '0') + ' : ' + d['time']['minute'].toString().padStart(2, '0');
-	document.getElementById('date').innerHTML                = d['date']['day'].toString().padStart(2, '0') + ' / ' + d['date']['month'].toString().padStart(2, '0') + ' / ' + d['date']['year'].toString().padStart(4, '0');
+	document.getElementById('brightnessSensorMap').textContent = d['brightnessMode']['brightValue'];
+	document.getElementById('temperature').textContent         = d['temperature'] + '°C';
+	document.getElementById('humidity').textContent            = d['humidity'] + '%';
+	document.getElementById('time').textContent                = pad2(d['time']['hour']) + ':' + pad2(d['time']['minute']);
+	document.getElementById('date').textContent                = pad2(d['date']['day']) + '/' + pad2(d['date']['month']) + '/' + pad2(d['date']['year'] % 100);
+	document.getElementById('dateSub').textContent             = weekdayName(d['date']['day'], d['date']['month'], d['date']['year']);
 
-	document.getElementById('umbrellaAlert').innerHTML       = d['umbrellaAlert'] == 1? "ON" : "OFF";
-	document.getElementById('alarmStatus').innerHTML         = d['alarm']['enable'] == 1? "ON" : "OFF";
+	var rain = d['umbrellaAlert'] == 1;
+	setDisplayOnOff('umbrellaAlert', rain);
+	var rainSub = document.getElementById('umbrellaSub');
+	rainSub.textContent = rain ? 'Leve o guarda-chuva' : 'Sem previsão';
+	rainSub.classList.toggle('c-on', !rain);
+
+	setDisplayOnOff('alarmStatus', d['alarm']['enable'] == 1);
+	document.getElementById('alarmSub').textContent = 'Programado ' + pad2(d['alarm']['hour']) + ':' + pad2(d['alarm']['minute']);
 
 	updateUiColorInt('clockFirstHourColor',    d['hourColor'][0]);
 	updateUiColorInt('clockSecondHourColor',   d['hourColor'][1]);
@@ -201,10 +219,11 @@ function updateUi(d) {
 	updateUiColorInt('tempFirstSymbolColor',   d['tempColor'][2]);
 	updateUiColorInt('tempSecondSymbolColor',  d['tempColor'][3]);
 
-	updateUiColorInt('humidityFirstValueColor',    d['humidityColor'][0]);
-	updateUiColorInt('humiditySecondValueColor',   d['humidityColor'][1]);
-	updateUiColorInt('humidityFirstSymbolColor',   d['humidityColor'][2]);
-	updateUiColorInt('humiditySecondSymbolColor',  d['humidityColor'][3]);
+	// Umidade: posições 1-2 = símbolo, 3-4 = valor (mesma ordem de setHumidityColor e do firmware)
+	updateUiColorInt('humidityFirstSymbolColor',   d['humidityColor'][0]);
+	updateUiColorInt('humiditySecondSymbolColor',  d['humidityColor'][1]);
+	updateUiColorInt('humidityFirstValueColor',    d['humidityColor'][2]);
+	updateUiColorInt('humiditySecondValueColor',   d['humidityColor'][3]);
 
 	updateUiManualBrightness('idCBSManual', d['brightnessMode']['clockManual']);
 	updateUiManualBrightness('idDBSManual', d['brightnessMode']['decoManual']);
@@ -216,11 +235,24 @@ function updateUi(d) {
 	}
 
 	document.getElementById('nightModeEnable').checked = d['nightMode']['enable'] == 1;
-	document.getElementById('nightModeStart').value = d['nightMode']['start']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['start']['minute'].toString().padStart(2, '0');
-	document.getElementById('nightModeEnd').value = d['nightMode']['end']['hour'].toString().padStart(2, '0') + ':' + d['nightMode']['end']['minute'].toString().padStart(2, '0');
+	document.getElementById('nightModeStart').value = pad2(d['nightMode']['start']['hour']) + ':' + pad2(d['nightMode']['start']['minute']);
+	document.getElementById('nightModeEnd').value   = pad2(d['nightMode']['end']['hour']) + ':' + pad2(d['nightMode']['end']['minute']);
 
 	document.getElementById('alarmEnable').checked = d['alarm']['enable'] == 1;
-	document.getElementById('alarmTime').value = d['alarm']['hour'].toString().padStart(2, '0') + ':' + d['alarm']['minute'].toString().padStart(2, '0');
+	document.getElementById('alarmTime').value = pad2(d['alarm']['hour']) + ':' + pad2(d['alarm']['minute']);
+}
+
+/* Botão de rodapé dos cards de cor: copia a cor do 1º dígito para os outros 3.
+   As requisições vão uma após a outra para não sobrecarregar o servidor do ESP. */
+function applyFirstColorToGroup(api, ids) {
+	var first = document.getElementById(ids[0]).value;
+	var i = 1;
+	(function next() {
+		if (i >= ids.length) { return; }
+		document.getElementById(ids[i]).value = first;
+		get(`${baseUrl}/${api}?p=${i + 1}&c=${first.replace('#', '')}`, next);
+		i++;
+	})();
 }
 
 /* ── Register all event listeners (once on startup) ─── */
@@ -257,6 +289,20 @@ function bindEvents() {
 			});
 		})(i);
 	}
+
+	// Rodapé dos cards de cor: igualar à cor do 1º dígito
+	document.querySelector('#uniformHour').addEventListener('click', function () {
+		applyFirstColorToGroup('setHourColor', ['clockFirstHourColor', 'clockSecondHourColor', 'clockFirstMinuteColor', 'clockSecodMinuteColor']);
+	});
+	document.querySelector('#uniformDay').addEventListener('click', function () {
+		applyFirstColorToGroup('setDayColor', ['clockFirstDayColor', 'clockSecondDayColor', 'clockFirstMonthColor', 'clockSecodMonthColor']);
+	});
+	document.querySelector('#uniformTemp').addEventListener('click', function () {
+		applyFirstColorToGroup('setTempColor', ['tempFirstValueColor', 'tempSecondValueColor', 'tempFirstSymbolColor', 'tempSecondSymbolColor']);
+	});
+	document.querySelector('#uniformHumidity').addEventListener('click', function () {
+		applyFirstColorToGroup('setHumidityColor', ['humidityFirstSymbolColor', 'humiditySecondSymbolColor', 'humidityFirstValueColor', 'humiditySecondValueColor']);
+	});
 
 	// Apply bulk color — Line 1 & 2
 	document.querySelector('#applyLine1All').addEventListener('click', function (e) { applyDecoColorAll(e, 1); });
@@ -365,7 +411,7 @@ function setLogMeta(text, isError) {
 /* Retorna true quando é preciso consultar de novo (dispositivo reiniciou) */
 function handleLogResponse(d) {
 	if (logState.uptime !== null && d.uptime < logState.uptime) {
-		appendLogLines(['──────── device restarted ────────'], 'log-marker');
+		appendLogLines(['──────── dispositivo reiniciou ────────'], 'log-marker');
 		logState.seq    = 0;
 		logState.uptime = null;
 		return true;
@@ -374,18 +420,18 @@ function handleLogResponse(d) {
 	// Linhas descartadas no ESP entre duas consultas (buffer circular de 50 linhas)
 	if (logState.seq > 0 && d.first > logState.seq + 1) {
 		var lost = d.first - logState.seq - 1;
-		appendLogLines(['… ' + lost + ' line(s) lost between refreshes …'], 'log-marker');
+		appendLogLines(['… ' + lost + ' linha(s) perdida(s) entre atualizações …'], 'log-marker');
 	}
 
 	appendLogLines(d.lines);
 	logState.seq    = d.seq;
 	logState.uptime = d.uptime;
 
-	document.getElementById('logBootInfo').textContent = 'Boot info: ' + (d.bootInfo || '--');
-	setLogMeta('Device lines ' + d.first + '–' + d.seq +
-		' · uptime ' + formatUptime(d.uptime) +
-		' · free heap ' + d.heap + ' B' +
-		' · updated ' + new Date().toLocaleTimeString(), false);
+	document.getElementById('logBootInfo').textContent = d.bootInfo || '--';
+	document.getElementById('logHeap').textContent     = d.heap.toLocaleString('pt-BR') + ' B';
+	document.getElementById('logUptime').textContent   = formatUptime(d.uptime);
+	setLogMeta('Última atualização: ' + new Date().toLocaleTimeString('pt-BR') +
+		' · linhas ' + d.first + '–' + d.seq, false);
 	return false;
 }
 
@@ -406,7 +452,7 @@ function fetchLogs() {
 		})
 		.catch(function (err) {
 			var reason = err.name === 'AbortError' ? 'timeout' : err.message;
-			setLogMeta('Log unavailable (' + reason + ') · ' + new Date().toLocaleTimeString(), true);
+			setLogMeta('Log indisponível (' + reason + ') · ' + new Date().toLocaleTimeString('pt-BR'), true);
 		})
 		.finally(function () {
 			clearTimeout(timeout);
@@ -486,6 +532,7 @@ function bindLogEvents() {
 
 /* ── Entry point ─────────────────────────────────────── */
 function startup() {
+	document.getElementById('deviceHost').textContent = window.location.host || 'arquivo local';
 	setControlsEnabled(false);
 	bindEvents();
 	bindLogEvents();

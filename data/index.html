@@ -3,518 +3,437 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Led Clock API</title>
+    <title>LedClock Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-	<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════ Navbar ══ -->
-<nav class="top-nav navbar px-3 py-2">
-    <div class="container-lg">
-        <span class="navbar-brand mb-0 d-flex align-items-center gap-2">
-            <i class="bi bi-clock-fill fs-5"></i>
-            <span>
-                <span class="brand-name">Led Clock</span>
-            </span>
-        </span>
-
-        <div class="d-flex align-items-center gap-3">
-            <span id="loadingIndicator">
-                <div class="ld-bar">
-                    <span></span><span></span><span></span><span></span>
+<!-- ═══════════════════════════════════════════════ Header ══ -->
+<header class="app-header">
+    <div class="wrap header-inner">
+        <div class="brand">
+            <div class="brand-logo"><i class="bi bi-clock"></i></div>
+            <div>
+                <div class="brand-title-row">
+                    <h1 class="brand-title">LedClock Studio</h1>
+                    <span class="conn-badge" id="connBadge">
+                        <span class="conn-dot" id="connDot"></span>
+                        <span id="connLabel">CONECTANDO…</span>
+                        <span class="conn-chip">ESP8266</span>
+                    </span>
                 </div>
-                <span>REQUEST</span>
-            </span>
+                <div class="brand-sub">
+                    <i class="bi bi-wifi"></i> <span id="deviceHost">--</span>
+                </div>
+            </div>
+        </div>
 
-            <span class="d-flex align-items-center gap-2 small">
-                <span class="conn-dot" id="connDot"></span>
-                <span id="connLabel">CONNECTING…</span>
+        <div class="header-actions">
+            <span id="loadingIndicator" class="loading-indicator">
+                <span class="spinner"></span>Enviando
             </span>
-            
-            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                    id="btnMock" onclick="applyDataMock()" title="Load mock data">
-                <i class="bi bi-cpu me-1"></i>MOCK
+            <button type="button" class="btn-ghost" id="btnMock" onclick="applyDataMock()" title="Carregar dados simulados">
+                <i class="bi bi-cpu"></i><span>Modo Simulado</span><span class="mono-chip">MOCK</span>
             </button>
-            
-
-            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                    id="btnRefresh" onclick="loadData()" title="Refresh">
-                <i class="bi bi-arrow-clockwise"></i>
+            <button type="button" class="btn-ghost" id="btnRefresh" onclick="loadData()" title="Ler novamente os dados do relógio">
+                <i class="bi bi-arrow-clockwise"></i><span class="hide-sm">Sincronizar</span>
             </button>
         </div>
     </div>
-</nav>
+</header>
 
 <!-- ════════════════════════════════════════ Main container ══ -->
-<div class="container-lg py-4" id="mainContainer">
+<main class="wrap main" id="mainContainer">
 
-    <!-- ── Status ──────────────────────────────────────────── -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-clock"></i></div>
-                <div class="stat-value" id="time">--:--</div>
-                <div class="stat-label">Time</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
-                <div class="stat-value" id="date">--/--/--</div>
-                <div class="stat-label">Date</div>
-            </div>
-        </div>	
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-thermometer-half"></i></div>
-                <div class="stat-value" id="temperature">--</div>
-                <div class="stat-label">Temperature</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-moisture"></i></div>
-                <div class="stat-value" id="humidity">---</div>
-                <div class="stat-label">Humidity</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-umbrella"></i></div>
-                <div class="stat-value" id="umbrellaAlert">---</div>
-                <div class="stat-label">Umbrella Alert</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-2">
-            <div class="stat-card h-100">
-                <div class="stat-icon"><i class="bi bi-alarm"></i></div>
-                <div class="stat-value" id="alarmStatus">---</div>
-                <div class="stat-label">Alarm</div>
-            </div>
-        </div>                
-    </div>
-
-    <!-- ── Clock + Day/Month colors ────────────────────────── -->
-    <div class="row g-3 mb-3">
-
-        <!-- Clock colors -->
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="text-success"><i class="bi bi-clock me-2 text-success"></i>Clock Colors</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Hour</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="clockFirstHourColor" value="#3A8439">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="clockSecondHourColor" value="#3A8439">
-                        </div>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Minute</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="clockFirstMinuteColor" value="#dd0000">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="clockSecodMinuteColor" value="#dd0000">
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Day / Month colors -->
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="text-primary"><i class="bi bi-calendar3 me-2 text-primary"></i>Date Colors</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Day</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="clockFirstDayColor" value="#3A8439">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="clockSecondDayColor" value="#3A8439">
-                        </div>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Month</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="clockFirstMonthColor" value="#dd0000">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="clockSecodMonthColor" value="#dd0000">
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Temperature / Symbol colors -->
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="text-danger"><i class="bi bi-thermometer me-2 text-danger"></i>Temperature Colors</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Value</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="tempFirstValueColor" value="#3A8439">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="tempSecondValueColor" value="#3A8439">
-                        </div>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Symbol</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="tempFirstSymbolColor" value="#dd0000">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="tempSecondSymbolColor" value="#dd0000">
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Symbol colors / Humidity -->
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="text-warning"><i class="bi bi-moisture me-2 text-warning"></i>Humidity Colors</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Symbol</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="humidityFirstSymbolColor" value="#3A8439">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="humiditySecondSymbolColor" value="#3A8439">
-                        </div>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="color-row-label">Value</span>
-                        <div class="swatch-group">
-                            <label>Digit 1</label>
-                            <input type="color" id="humidityFirstValueColor" value="#dd0000">
-                        </div>
-                        <div class="swatch-group">
-                            <label>Digit 2</label>
-                            <input type="color" id="humiditySecondValueColor" value="#dd0000">
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>        
-
-
-
-    </div><!-- /row -->
-
-
-
-
-    <!-- ── Clock + Day/Month colors ────────────────────────── -->
-    <div class="row g-3 mb-3">
-
-        <!-- Clock colors -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6><i class="bi bi-clock me-2"></i>Decoration Lights Line 1</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                                <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <p class="form-label mb-0">Line 1</p>
-                    <input type="color" id="bulkColorLine1" value="#ffffff" title="Pick color to apply to all">
-                    <button class="btn btn-sm btn-outline-info" id="applyLine1All">
-                        <i class="bi bi-paint-bucket me-1"></i>Apply to all
-                    </button>
-                </div>
-                <div class="deco-grid">
-                    <input type="color" id="favDLC1"  value="#ffffff">
-                    <input type="color" id="favDLC2"  value="#ffffff">
-                    <input type="color" id="favDLC3"  value="#ffffff">
-                    <input type="color" id="favDLC4"  value="#ffffff">
-                    <input type="color" id="favDLC5"  value="#ffffff">
-                    <input type="color" id="favDLC6"  value="#ffffff">
-                    <input type="color" id="favDLC7"  value="#ffffff">
-                </div>
-            </div>
-
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Day / Month colors -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6><i class="bi bi-calendar3 me-2"></i>Decoration Lights Line 2</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
+    <!-- ── Mostrador ───────────────────────────────────────── -->
+    <section class="panel panel-lg">
+        <div class="panel-head">
             <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <p class="form-label mb-0">Line 2</p>
-                    <input type="color" id="bulkColorLine2" value="#ffffff" title="Pick color to apply to all">
-                    <button class="btn btn-sm btn-outline-info" id="applyLine2All">
-                        <i class="bi bi-paint-bucket me-1"></i>Apply to all
-                    </button>
-                </div>
-                <div class="deco-grid">
-                    <input type="color" id="favDLC8"  value="#ffffff">
-                    <input type="color" id="favDLC9"  value="#ffffff">
-                    <input type="color" id="favDLC10" value="#ffffff">
-                    <input type="color" id="favDLC11" value="#ffffff">
-                    <input type="color" id="favDLC12" value="#ffffff">
-                    <input type="color" id="favDLC13" value="#ffffff">
-                    <input type="color" id="favDLC14" value="#ffffff">
-                </div>
-            </div>                    
-
-
-                </div>
-            </div>
-        </div>
-    </div><!-- /row -->
-
-    <!-- ── Brightness + Rainbow ────────────────────────────── -->
-    <div class="row g-3 mb-3">
-
-        <!-- Brightness -->
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6><i class="bi bi-sun me-2 text-danger"></i>Brightness State</h6>
-                </div>
-                <div class="card-body d-flex flex-column gap-3">
-
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <span class="color-row-label">Sensor map</span>
-                        <div class="btn-group" role="group" aria-label="Clock brightness">
-                                <i class="bi bi-brightness-high"></i><label id="brightnessSensorMap"></label>
-                        </div>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <span class="color-row-label">Clock</span>
-                        <div class="btn-group" role="group" aria-label="Clock brightness">
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSOff">
-                                <i class="bi bi-lightbulb-off me-1"></i>OFF
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSOn">
-                                <i class="bi bi-lightbulb me-1"></i>ON
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSAuto">
-                                <i class="bi bi-magic me-1"></i>AUTO
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idCBSManual">
-                                <i class="bi bi-sliders me-1"></i>MANUAL
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 d-none" id="idCBSManualRow">
-                        <span class="color-row-label"></span>
-                        <input type="range" class="form-range brightness-range flex-grow-1" min="0" max="255" step="1" value="50"
-                               id="idCBSManualRange" aria-label="Clock manual brightness">
-                        <span class="brightness-value" id="idCBSManualValue">50</span>
-                    </div>
-
-                    <hr class="section-divider my-0">
-
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <span class="color-row-label">Deco</span>
-                        <div class="btn-group" role="group" aria-label="Decoration brightness">
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSOff">
-                                <i class="bi bi-lightbulb-off me-1"></i>OFF
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSOn">
-                                <i class="bi bi-lightbulb me-1"></i>ON
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSAuto">
-                                <i class="bi bi-magic me-1"></i>AUTO
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-state" id="idDBSManual">
-                                <i class="bi bi-sliders me-1"></i>MANUAL
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 d-none" id="idDBSManualRow">
-                        <span class="color-row-label"></span>
-                        <input type="range" class="form-range brightness-range flex-grow-1" min="0" max="255" step="1" value="50"
-                               id="idDBSManualRange" aria-label="Decoration manual brightness">
-                        <span class="brightness-value" id="idDBSManualValue">50</span>
-                    </div>
-
-                </div>
+                <span class="eyebrow">Leitura em tempo real</span>
+                <h2 class="panel-title">Mostrador Físico NeoPixel</h2>
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6><i class="bi bi-stars me-2"></i>Night Mode</h6>
-                </div>
-
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="nightModeEnable">
-                            <label class="form-check-label" for="flexSwitchCheckDefault">Enable</label>
-                        </div>                        
-                        <div class="col-sm-4">
-                            <label class="form-label" for="nightModeStart">Start Time</label>
-                            <input type="time" class="form-control" id="nightModeStart" value="00:00">
-                        </div>
-                        <div class="col-sm-4">
-                            <label class="form-label" for="nightModeEnd">End Time</label>
-                            <input type="time" class="form-control" id="nightModeEnd" value="05:30">
-                        </div>
-                        <div class="col-sm-4">
-                            <button type="button" id="setNightTime" class="btn btn-primary w-100 btn-state">
-                                <i class="bi bi-check-lg me-1"></i>Apply
-                            </button>
-                        </div>
-                    </div>
-                </div>                
-
-
+        <div class="display-grid">
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-clock c-cyan"></i>HORA</div>
+                <div class="display-value lg glow c-cyan" id="time">--:--</div>
+                <span class="display-sub" id="timeSub">Horário NTP</span>
             </div>
-        </div> 
-        
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6><i class="bi bi-alarm me-2"></i>Alarm</h6>
-                </div>
-
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="alarmEnable">
-                            <label class="form-check-label" for="flexSwitchCheckDefault">Enable</label>
-                        </div>
-                        <div class="col-sm-4">
-                            <label class="form-label" for="nightModeEnd">Time</label>
-                            <input type="time" class="form-control" id="alarmTime" value="00:00">
-                        </div>
-                        <div class="col-sm-4">
-                            <button type="button" id="btnAlarm" class="btn btn-primary w-100 btn-state">
-                                <i class="bi bi-check-lg me-1"></i>Apply
-                            </button>
-                        </div>        
-                          
-                    </div>
-                </div>                
-
-
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-calendar3 c-indigo"></i>DATA</div>
+                <div class="display-value md glow c-indigo-light" id="date">--/--/--</div>
+                <span class="display-sub" id="dateSub">--</span>
             </div>
-        </div>         
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-thermometer-half c-rose"></i>TEMP</div>
+                <div class="display-value lg glow c-rose" id="temperature">--</div>
+                <span class="display-sub">Temperatura externa</span>
+            </div>
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-droplet-half c-amber"></i>UMIDADE</div>
+                <div class="display-value lg glow c-amber" id="humidity">--</div>
+                <span class="display-sub">Umidade relativa</span>
+            </div>
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-umbrella c-sky"></i>CHUVA ALERT</div>
+                <div class="display-value md c-off" id="umbrellaAlert">---</div>
+                <span class="display-sub" id="umbrellaSub">--</span>
+            </div>
+            <div class="display-card">
+                <div class="display-label"><i class="bi bi-bell c-violet"></i>ALARME</div>
+                <div class="display-value md c-off" id="alarmStatus">---</div>
+                <span class="display-sub" id="alarmSub">--</span>
+            </div>
+        </div>
+    </section>
 
-    </div><!-- /row -->
+    <!-- ── Cores dos dígitos ───────────────────────────────── -->
+    <section class="stack">
+        <div class="section-head">
+            <h3 class="section-title"><i class="bi bi-palette"></i>Cores dos Dígitos do Mostrador</h3>
+            <span class="muted-sm">Clique na amostra para alterar a cor individual</span>
+        </div>
 
-    <!-- ── Device log ──────────────────────────────────────── -->
-    <div class="row g-3 mt-1">
-        <div class="col-12">
+        <div class="color-grid">
+            <!-- Relógio -->
             <div class="card">
-                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <h6><i class="bi bi-terminal me-2"></i>Device Log</h6>
-
-                    <div class="d-flex flex-wrap align-items-center gap-3">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input log-control" type="checkbox" id="logAutoRefresh" checked>
-                            <label class="form-check-label small" for="logAutoRefresh">Auto refresh</label>
+                <div>
+                    <div class="card-head">
+                        <span class="card-title"><i class="bi bi-clock c-cyan-d"></i>Relógio (Horário)</span>
+                        <span class="tag tag-cyan">4 Dígitos</span>
+                    </div>
+                    <div class="swatch-rows">
+                        <div class="swatch-row">
+                            <span>Horas (H1, H2)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="clockFirstHourColor" value="#06B6D4" title="Dígito 1">
+                                <input type="color" class="swatch" id="clockSecondHourColor" value="#06B6D4" title="Dígito 2">
+                            </div>
                         </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input log-control" type="checkbox" id="logAutoScroll" checked>
-                            <label class="form-check-label small" for="logAutoScroll">Auto scroll</label>
-                        </div>
-                        <input type="search" class="form-control form-control-sm log-control log-filter"
-                               id="logFilter" placeholder="Filter..." aria-label="Filter log lines">
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
-                                    id="btnLogRefresh" title="Refresh now">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
-                                    id="btnLogDownload" title="Download as .txt">
-                                <i class="bi bi-download"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-state log-control"
-                                    id="btnLogClear" title="Clear view">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                        <div class="swatch-row">
+                            <span>Minutos (M1, M2)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="clockFirstMinuteColor" value="#22D3EE" title="Dígito 3">
+                                <input type="color" class="swatch" id="clockSecodMinuteColor" value="#22D3EE" title="Dígito 4">
+                            </div>
                         </div>
                     </div>
                 </div>
+                <button type="button" class="card-action c-cyan-d" id="uniformHour">Igualar à cor do 1º dígito</button>
+            </div>
 
-                <div class="card-body">
-                    <div class="log-boot" id="logBootInfo">Boot info: --</div>
-                    <div class="log-meta" id="logMeta">Waiting for device...</div>
-                    <div class="log-view" id="logView" role="log" aria-live="off"></div>
+            <!-- Data -->
+            <div class="card">
+                <div>
+                    <div class="card-head">
+                        <span class="card-title"><i class="bi bi-calendar3 c-indigo-d"></i>Calendário (Data)</span>
+                        <span class="tag tag-indigo">Dia &amp; Mês</span>
+                    </div>
+                    <div class="swatch-rows">
+                        <div class="swatch-row">
+                            <span>Dia (D1, D2)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="clockFirstDayColor" value="#818CF8" title="Dia dígito 1">
+                                <input type="color" class="swatch" id="clockSecondDayColor" value="#818CF8" title="Dia dígito 2">
+                            </div>
+                        </div>
+                        <div class="swatch-row">
+                            <span>Mês (M1, M2)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="clockFirstMonthColor" value="#6366F1" title="Mês dígito 1">
+                                <input type="color" class="swatch" id="clockSecodMonthColor" value="#6366F1" title="Mês dígito 2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="card-action c-indigo-d" id="uniformDay">Uniformizar Data</button>
+            </div>
+
+            <!-- Temperatura -->
+            <div class="card">
+                <div>
+                    <div class="card-head">
+                        <span class="card-title"><i class="bi bi-thermometer-half c-rose-d"></i>Temperatura</span>
+                        <span class="tag tag-rose">°C Graus</span>
+                    </div>
+                    <div class="swatch-rows">
+                        <div class="swatch-row">
+                            <span>Valor (2 Dígitos)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="tempFirstValueColor" value="#FB7185" title="Temp dígito 1">
+                                <input type="color" class="swatch" id="tempSecondValueColor" value="#FB7185" title="Temp dígito 2">
+                            </div>
+                        </div>
+                        <div class="swatch-row">
+                            <span>Símbolo (°C)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="tempFirstSymbolColor" value="#F43F5E" title="Grau">
+                                <input type="color" class="swatch" id="tempSecondSymbolColor" value="#F43F5E" title="C">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="card-action c-rose-d" id="uniformTemp">Igualar à cor do 1º dígito</button>
+            </div>
+
+            <!-- Umidade -->
+            <div class="card">
+                <div>
+                    <div class="card-head">
+                        <span class="card-title"><i class="bi bi-droplet-half c-amber-d"></i>Umidade Relativa</span>
+                        <span class="tag tag-amber">% UR</span>
+                    </div>
+                    <div class="swatch-rows">
+                        <div class="swatch-row">
+                            <span>Símbolo (%)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="humidityFirstSymbolColor" value="#F59E0B" title="% símbolo 1">
+                                <input type="color" class="swatch" id="humiditySecondSymbolColor" value="#F59E0B" title="% símbolo 2">
+                            </div>
+                        </div>
+                        <div class="swatch-row">
+                            <span>Valor (2 Dígitos)</span>
+                            <div class="swatches">
+                                <input type="color" class="swatch" id="humidityFirstValueColor" value="#FBBF24" title="Umidade dígito 1">
+                                <input type="color" class="swatch" id="humiditySecondValueColor" value="#FBBF24" title="Umidade dígito 2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="card-action c-amber-d" id="uniformHumidity">Igualar à cor do 1º dígito</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Decoração ───────────────────────────────────────── -->
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <h3 class="section-title"><i class="bi bi-stars c-indigo-d"></i>Luzes Decorativas (Linhas NeoPixel)</h3>
+                <p class="muted-sm mt-1">Controle os 14 LEDs auxiliares individualmente ou aplique uma cor a toda a linha.</p>
+            </div>
+        </div>
+
+        <div class="deco-grid">
+            <!-- Linha 1 -->
+            <div class="deco-card">
+                <div class="deco-head">
+                    <div class="deco-title">
+                        <span class="caps">Linha 1</span>
+                        <span class="pill pill-cyan">7 LEDs</span>
+                    </div>
+                    <div class="deco-tools">
+                        <label class="master" title="Cor para aplicar em toda a linha">
+                            <input type="color" class="swatch swatch-sm swatch-ring-cyan" id="bulkColorLine1" value="#38BDF8">
+                            <span class="hide-sm">Master</span>
+                        </label>
+                        <button type="button" class="link-btn c-cyan-d" id="applyLine1All" title="Aplicar a cor Master aos 7 LEDs">
+                            <i class="bi bi-copy"></i>Aplicar a todos
+                        </button>
+                    </div>
+                </div>
+                <div class="led-row">
+                    <label class="led"><input type="color" class="swatch" id="favDLC1" value="#ffffff"><span>1</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC2" value="#ffffff"><span>2</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC3" value="#ffffff"><span>3</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC4" value="#ffffff"><span>4</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC5" value="#ffffff"><span>5</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC6" value="#ffffff"><span>6</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC7" value="#ffffff"><span>7</span></label>
+                </div>
+            </div>
+
+            <!-- Linha 2 -->
+            <div class="deco-card">
+                <div class="deco-head">
+                    <div class="deco-title">
+                        <span class="caps">Linha 2</span>
+                        <span class="pill pill-indigo">7 LEDs</span>
+                    </div>
+                    <div class="deco-tools">
+                        <label class="master" title="Cor para aplicar em toda a linha">
+                            <input type="color" class="swatch swatch-sm swatch-ring-indigo" id="bulkColorLine2" value="#818CF8">
+                            <span class="hide-sm">Master</span>
+                        </label>
+                        <button type="button" class="link-btn c-indigo-d" id="applyLine2All" title="Aplicar a cor Master aos 7 LEDs">
+                            <i class="bi bi-copy"></i>Aplicar a todos
+                        </button>
+                    </div>
+                </div>
+                <div class="led-row">
+                    <label class="led"><input type="color" class="swatch" id="favDLC8"  value="#ffffff"><span>8</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC9"  value="#ffffff"><span>9</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC10" value="#ffffff"><span>10</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC11" value="#ffffff"><span>11</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC12" value="#ffffff"><span>12</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC13" value="#ffffff"><span>13</span></label>
+                    <label class="led"><input type="color" class="swatch" id="favDLC14" value="#ffffff"><span>14</span></label>
                 </div>
             </div>
         </div>
-    </div><!-- /row -->
-</div><!-- /container -->
+    </section>
 
-<!-- ═══════════════════════════════════════════════ Scripts ══ -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ── Brilho / Noturno / Alarme ───────────────────────── -->
+    <section class="settings-grid">
+
+        <!-- Brilho -->
+        <div class="panel settings-card">
+            <div>
+                <div class="settings-head">
+                    <h4 class="settings-title"><i class="bi bi-sun c-amber-d"></i>Brilho &amp; Luminosidade</h4>
+                    <span class="sensor-badge"><i class="bi bi-activity"></i>Sensor: <span id="brightnessSensorMap">--</span></span>
+                </div>
+
+                <div class="stack-sm">
+                    <div>
+                        <div class="field-head">
+                            <span>Modo Relógio</span>
+                            <span class="muted" id="idCBSLabel">--</span>
+                        </div>
+                        <div class="segmented" role="group" aria-label="Brilho do relógio">
+                            <button type="button" class="seg-btn" id="idCBSOff">OFF</button>
+                            <button type="button" class="seg-btn" id="idCBSOn">ON</button>
+                            <button type="button" class="seg-btn" id="idCBSAuto">AUTO</button>
+                            <button type="button" class="seg-btn" id="idCBSManual">MAN</button>
+                        </div>
+                        <div class="range-row d-none" id="idCBSManualRow">
+                            <div class="field-head">
+                                <span>Nível de potência</span>
+                                <span class="mono" id="idCBSManualValue">50</span>
+                            </div>
+                            <input type="range" class="range range-cyan" min="0" max="255" step="1" value="50"
+                                   id="idCBSManualRange" aria-label="Brilho manual do relógio">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="field-head">
+                            <span>Modo Decoração</span>
+                            <span class="muted" id="idDBSLabel">--</span>
+                        </div>
+                        <div class="segmented" role="group" aria-label="Brilho da decoração">
+                            <button type="button" class="seg-btn" id="idDBSOff">OFF</button>
+                            <button type="button" class="seg-btn" id="idDBSOn">ON</button>
+                            <button type="button" class="seg-btn" id="idDBSAuto">AUTO</button>
+                            <button type="button" class="seg-btn" id="idDBSManual">MAN</button>
+                        </div>
+                        <div class="range-row d-none" id="idDBSManualRow">
+                            <div class="field-head">
+                                <span>Nível de potência</span>
+                                <span class="mono" id="idDBSManualValue">50</span>
+                            </div>
+                            <input type="range" class="range range-cyan" min="0" max="255" step="1" value="50"
+                                   id="idDBSManualRange" aria-label="Brilho manual da decoração">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="hint"><i class="bi bi-info-circle"></i>AUTO ajusta o brilho pelo fotorresistor (LDR).</div>
+        </div>
+
+        <!-- Modo Noturno -->
+        <div class="panel settings-card">
+            <div>
+                <div class="settings-head">
+                    <h4 class="settings-title"><i class="bi bi-moon-stars c-indigo-d"></i>Modo Noturno</h4>
+                    <label class="switch switch-indigo" title="Ativar modo noturno">
+                        <input type="checkbox" id="nightModeEnable">
+                        <span class="switch-track"></span>
+                    </label>
+                </div>
+                <p class="desc">Apaga o relógio e a decoração no intervalo abaixo e silencia o som da inicialização.</p>
+                <div class="time-grid">
+                    <div>
+                        <label class="field-label" for="nightModeStart">Hora de Início</label>
+                        <input type="time" class="input" id="nightModeStart" value="00:00">
+                    </div>
+                    <div>
+                        <label class="field-label" for="nightModeEnd">Hora de Término</label>
+                        <input type="time" class="input" id="nightModeEnd" value="05:30">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn-soft btn-soft-indigo" id="setNightTime">
+                <i class="bi bi-check2"></i>Salvar Agendamento Noturno
+            </button>
+        </div>
+
+        <!-- Alarme -->
+        <div class="panel settings-card">
+            <div>
+                <div class="settings-head">
+                    <h4 class="settings-title"><i class="bi bi-bell c-violet-d"></i>Despertador / Alarme</h4>
+                    <label class="switch switch-violet" title="Ativar alarme">
+                        <input type="checkbox" id="alarmEnable">
+                        <span class="switch-track"></span>
+                    </label>
+                </div>
+                <p class="desc">No horário programado, o buzzer toca e a hora pisca por 10 segundos.</p>
+                <div>
+                    <label class="field-label" for="alarmTime">Horário Programado</label>
+                    <input type="time" class="input" id="alarmTime" value="07:00">
+                </div>
+            </div>
+            <button type="button" class="btn-soft btn-soft-slate" id="btnAlarm">
+                <i class="bi bi-check2"></i>Atualizar Alarme
+            </button>
+        </div>
+    </section>
+
+    <!-- ── Log do dispositivo ──────────────────────────────── -->
+    <section class="console">
+        <div class="console-bar">
+            <div class="console-title">
+                <span class="dots"><span></span><span></span><span></span></span>
+                <span class="mono"><i class="bi bi-terminal c-cyan"></i>ESP8266 Live System Log</span>
+            </div>
+            <div class="console-tools">
+                <span class="hide-sm">Heap: <strong class="c-emerald" id="logHeap">--</strong></span>
+                <span class="hide-sm">Uptime: <strong class="c-light" id="logUptime">--</strong></span>
+                <label class="console-check">
+                    <input type="checkbox" class="log-control" id="logAutoRefresh" checked>Auto refresh
+                </label>
+                <label class="console-check">
+                    <input type="checkbox" class="log-control" id="logAutoScroll" checked>Auto-scroll
+                </label>
+                <button type="button" class="icon-btn log-control" id="btnLogRefresh" title="Atualizar agora">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button type="button" class="icon-btn log-control" id="btnLogClear" title="Limpar visualização">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="console-filter">
+            <div class="search">
+                <i class="bi bi-search"></i>
+                <input type="search" class="log-control" id="logFilter"
+                       placeholder="Filtrar por [HEALTH], [TEMP], erro..." aria-label="Filtrar linhas do log">
+            </div>
+            <div class="boot-info" id="logBootInfo">Boot info: --</div>
+        </div>
+
+        <div class="log-view" id="logView" role="log" aria-live="off"></div>
+
+        <div class="console-foot">
+            <span id="logMeta">Aguardando o dispositivo...</span>
+            <button type="button" class="link-btn console-link log-control" id="btnLogDownload">
+                <i class="bi bi-download"></i>Baixar Relatório (.txt)
+            </button>
+        </div>
+    </section>
+</main>
+
+<footer class="wrap app-footer">
+    LedClock Studio • ESP8266 • NeoPixel WS2812B
+</footer>
+
 <script src="app.js"></script>
 </body>
 </html>
