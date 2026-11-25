@@ -197,6 +197,21 @@
 </div>
 </section>
 <!-- END: LivePreviewSection -->
+<!-- BEGIN: TabNavigation -->
+<nav class="flex gap-1 p-1 bg-nordic-100 border border-nordic-200 rounded-xl overflow-x-auto -mb-4" role="tablist" aria-label="Seções do painel" data-purpose="tab-navigation">
+<button class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[13px] whitespace-nowrap transition bg-white text-nordic-900 font-semibold shadow-sm" role="tab" aria-selected="true" data-tab="config">
+<i data-lucide="sliders-horizontal" class="w-4 h-4 text-cyan-600"></i> Configurações
+</button>
+<button class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[13px] whitespace-nowrap transition text-nordic-600 font-medium hover:bg-white/60" role="tab" aria-selected="false" data-tab="ota">
+<i data-lucide="cloud-upload" class="w-4 h-4"></i> Atualização OTA
+</button>
+<button class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[13px] whitespace-nowrap transition text-nordic-600 font-medium hover:bg-white/60" role="tab" aria-selected="false" data-tab="log">
+<i data-lucide="terminal" class="w-4 h-4"></i> Log
+</button>
+</nav>
+<!-- END: TabNavigation -->
+<!-- BEGIN: TabPanel Configurações -->
+<div class="tab-panel space-y-8" data-panel="config" role="tabpanel">
 <!-- BEGIN: DigitColorsSection -->
 <section class="space-y-4" data-purpose="digit-color-customization">
 <div class="flex items-center justify-between">
@@ -392,7 +407,7 @@
   <div>
     <h3 class="text-lg font-bold text-nordic-900 flex items-center gap-2">
       <i class="w-5 h-5 text-indigo-500" data-lucide="sparkles"></i>
-      Luzes Decorativas &amp; Fitas Ambientais (Linhas NeoPixel)
+      Luzes Decorativas &amp; Fitas Ambientais
     </h3>
     <p class="text-xs text-nordic-500 mt-0.5">Controle os 16 LEDs RGB auxiliares por segmento individual ou sincronize a paleta.</p>
   </div>
@@ -676,6 +691,57 @@
 </div>
 </section>
 <!-- END: HardwareComfortGrid -->
+</div>
+<!-- END: TabPanel Configurações -->
+<!-- BEGIN: TabPanel Atualização OTA -->
+<div class="tab-panel space-y-8 hidden" data-panel="ota" role="tabpanel">
+<section class="bg-white rounded-2xl border border-nordic-200 shadow-soft p-5 md:p-6" data-purpose="ota-update">
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-3.5 border-b border-nordic-100">
+<div>
+<h3 class="text-lg font-bold text-nordic-900 flex items-center gap-2"><i data-lucide="cloud-upload" class="w-5 h-5 text-cyan-600"></i> Atualização OTA</h3>
+<p class="text-xs text-nordic-500 mt-0.5">Grave um novo firmware ou uma nova interface pela rede, sem cabo USB.</p>
+</div>
+<div class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-nordic-500">
+<span>Firmware atual <strong class="font-mono font-semibold text-nordic-800 ml-1">Nov 25 2026 10:42</strong></span>
+<span>Tamanho <strong class="font-mono font-semibold text-nordic-800 ml-1">412 KB</strong></span>
+<span>Interface em uso <strong class="font-mono font-semibold text-nordic-800 ml-1">38 KB</strong></span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+<div class="md:col-span-3 space-y-4">
+<div>
+<div class="flex justify-between text-xs font-medium text-nordic-600 mb-1.5"><span>O que atualizar</span><span class="text-nordic-400">Máx. 1.020 KB</span></div>
+<div class="grid grid-cols-2 gap-1 p-1 bg-nordic-100 rounded-lg">
+<button class="py-1 text-xs rounded bg-white text-nordic-900 font-semibold shadow-sm">Firmware</button>
+<button class="py-1 text-xs rounded text-nordic-600 font-medium hover:bg-white transition">Interface</button>
+</div>
+</div>
+<label class="flex flex-col items-center justify-center gap-1 min-h-[132px] p-5 text-center text-[13px] text-nordic-600 bg-nordic-50 border-2 border-dashed border-nordic-300 rounded-xl cursor-pointer hover:border-cyan-500 hover:bg-cyan-50 transition">
+<i data-lucide="file-code-2" class="w-7 h-7 text-cyan-600"></i>
+<span>Escolha ou arraste o <strong>firmware.bin</strong></span>
+<span class="text-xs text-nordic-500">Gerado em .pio/build/esp12e/</span>
+</label>
+</div>
+<div class="md:col-span-2 flex flex-col justify-end gap-4">
+<div>
+<label class="block text-xs font-medium text-nordic-600 mb-1">Senha OTA</label>
+<input class="w-full px-3 py-2 font-mono text-xs bg-white border border-nordic-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Senha definida no firmware" type="password">
+</div>
+<div>
+<div class="flex justify-between text-xs font-medium text-nordic-600 mb-1.5"><span>Enviando</span><span class="font-mono">64%</span></div>
+<div class="h-2 rounded-full bg-nordic-100 overflow-hidden"><div class="h-full w-[64%] bg-cyan-500 rounded-full"></div></div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold text-white bg-nordic-900 hover:bg-nordic-700 rounded-lg transition">
+<i data-lucide="upload" class="w-4 h-4"></i> Enviar atualização
+</button>
+</div>
+</div>
+<div class="flex items-center gap-1.5 mt-4 text-[11px] text-nordic-400"><i data-lucide="info" class="w-3.5 h-3.5"></i> Durante a gravação o mostrador apaga e a decoração acende conforme o progresso. Ao terminar, o relógio reinicia sozinho.</div>
+</section>
+</div>
+<!-- END: TabPanel Atualização OTA -->
+<!-- BEGIN: TabPanel Log -->
+<div class="tab-panel space-y-8 hidden" data-panel="log" role="tabpanel">
 <!-- BEGIN: DeviceDiagnosticConsole -->
 <section class="bg-white rounded-2xl border border-nordic-200 shadow-soft overflow-hidden" data-purpose="diagnostic-terminal">
 <!-- Top Console Bar -->
@@ -715,7 +781,7 @@
         </div>
 </div>
 <!-- Log Entries Container -->
-<div class="bg-[#0b1120] p-4 font-mono text-xs text-nordic-300 leading-relaxed max-h-56 overflow-y-auto space-y-1">
+<div class="bg-[#0b1120] p-4 font-mono text-xs text-nordic-300 leading-relaxed h-[60vh] min-h-64 max-h-[40rem] overflow-y-auto space-y-1">
 <p class="text-nordic-500">[ 3720.012 ] [HEALTH] uptime=3720s loops=48211 (4821/s) maiorGapLoop=12ms em SECOND_TICK loopsLentos=0</p>
 <p class="text-nordic-500">[ 3720.015 ] [HEALTH] heap=31240 minHeap=28904 maiorBloco=29800 frag=4% stack=3120</p>
 <p class="text-cyan-400">[ 3721.000 ] [DISP  ] Modo: TEMPERATURA</p>
@@ -734,6 +800,8 @@
 </div>
 </section>
 <!-- END: DeviceDiagnosticConsole -->
+</div>
+<!-- END: TabPanel Log -->
 </main>
 <!-- BEGIN: PageFooter -->
 <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-nordic-200 text-center text-xs text-nordic-500">
@@ -744,6 +812,27 @@
 <script data-purpose="lucide-initialization">
     // Inicialização dos ícones Feather/Lucide
     lucide.createIcons();
+  </script>
+<script data-purpose="tab-switching">
+    // Alterna as abas (Configurações / Atualização OTA / Log); o Mostrador fica sempre visível acima delas
+    var ON  = ['bg-white', 'text-nordic-900', 'font-semibold', 'shadow-sm'];
+    var OFF = ['text-nordic-600', 'font-medium', 'hover:bg-white/60'];
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tab-btn').forEach(function (b) {
+          var active = b === btn;
+          b.classList.remove.apply(b.classList, active ? OFF : ON);
+          b.classList.add.apply(b.classList, active ? ON : OFF);
+          b.setAttribute('aria-selected', active);
+          b.querySelector('svg').classList.toggle('text-cyan-600', active);
+        });
+        document.querySelectorAll('.tab-panel').forEach(function (p) {
+          p.classList.toggle('hidden', p.dataset.panel !== btn.dataset.tab);
+        });
+      });
+    });
+    var initial = document.querySelector('.tab-btn[data-tab="' + location.hash.slice(1) + '"]');
+    if (initial) { initial.click(); }
   </script>
 
 

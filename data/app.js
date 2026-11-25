@@ -123,7 +123,7 @@ function applyDataMock() {
 /* ── UI state helpers ────────────────────────────────── */
 function setControlsEnabled(enabled) {
 	document.getElementById('mainContainer')
-		.querySelectorAll('input:not(.log-control), button:not(.log-control)')
+		.querySelectorAll('input:not(.log-control), button:not(.log-control):not(.tab-btn)')
 		.forEach(function (el) { el.disabled = !enabled; });
 }
 
@@ -769,11 +769,53 @@ function bindOtaEvents() {
 	});
 }
 
+/* ── Abas ────────────────────────────────────────────── */
+var TAB_NAMES = ['config', 'ota', 'log'];
+
+function showTab(name, focus) {
+	if (TAB_NAMES.indexOf(name) < 0) { name = 'config'; }
+	document.querySelectorAll('.tab-btn').forEach(function (btn) {
+		var active = btn.dataset.tab === name;
+		btn.classList.toggle('active', active);
+		btn.setAttribute('aria-selected', active ? 'true' : 'false');
+		btn.tabIndex = active ? 0 : -1;
+		document.getElementById(btn.getAttribute('aria-controls')).hidden = !active;
+		if (active && focus) { btn.focus(); }
+	});
+	if (name === 'log' && document.getElementById('logAutoScroll').checked) {
+		var view = document.getElementById('logView');
+		view.scrollTop = view.scrollHeight;
+	}
+	if (history.replaceState) {
+		history.replaceState(null, '', name === 'config' ? window.location.pathname + window.location.search : '#' + name);
+	}
+}
+
+function bindTabEvents() {
+	var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-btn'));
+	buttons.forEach(function (btn, i) {
+		btn.addEventListener('click', function () { showTab(btn.dataset.tab); });
+		btn.addEventListener('keydown', function (e) {
+			var next = null;
+			if (e.key === 'ArrowRight') { next = buttons[(i + 1) % buttons.length]; }
+			if (e.key === 'ArrowLeft')  { next = buttons[(i - 1 + buttons.length) % buttons.length]; }
+			if (e.key === 'Home')       { next = buttons[0]; }
+			if (e.key === 'End')        { next = buttons[buttons.length - 1]; }
+			if (next) {
+				e.preventDefault();
+				showTab(next.dataset.tab, true);
+			}
+		});
+	});
+	showTab(window.location.hash.replace('#', ''));
+}
+
 /* ── Entry point ─────────────────────────────────────── */
 function startup() {
 	document.getElementById('deviceHost').textContent = window.location.host || 'arquivo local';
 	setControlsEnabled(false);
 	bindEvents();
+	bindTabEvents();
 	bindLogEvents();
 	bindOtaEvents();
 	renderOtaTarget();

@@ -235,6 +235,41 @@ button:disabled, input:disabled { cursor: not-allowed; }
 .section-title > .bi { color: var(--n600); font-size: 18px; }
 .section-title > .bi.c-indigo-d { color: var(--indigo-500); }
 
+/* ── Abas ───────────────────────────────────────────── */
+.tabs {
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+	background: var(--n100);
+	border: 1px solid var(--n200);
+	border-radius: 12px;
+	overflow-x: auto;
+	margin-bottom: -1rem;
+}
+.tab-btn {
+	flex: 1 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--n600);
+	background: transparent;
+	border: none;
+	border-radius: 8px;
+	white-space: nowrap;
+	transition: background 0.15s, color 0.15s;
+}
+.tab-btn:hover { background: rgba(255, 255, 255, 0.6); color: var(--n800); }
+.tab-btn.active { background: #fff; color: var(--n900); font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
+.tab-btn.active .bi { color: var(--cyan-600); }
+.tab-btn:focus-visible { outline: 2px solid var(--cyan-500); outline-offset: 1px; }
+
+.tab-panel { display: flex; flex-direction: column; gap: 2rem; }
+.tab-panel[hidden] { display: none; }
+
 /* ── Mostrador (cards escuros) ──────────────────────── */
 .display-grid {
 	display: grid;
@@ -695,7 +730,7 @@ input[type="color"].swatch-ring-indigo { box-shadow: 0 0 0 1px rgba(99, 102, 241
 	font-size: 12px;
 	line-height: 1.65;
 	color: var(--n300);
-	height: 16rem;
+	height: clamp(16rem, 60vh, 40rem);
 	overflow-y: auto;
 }
 .log-line { white-space: pre-wrap; word-break: break-word; }
