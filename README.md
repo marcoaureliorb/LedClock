@@ -10,7 +10,12 @@ Code base for a completely customizable and configurable LED clock using WS2812b
 
 Web interface to change the properties of clock.
 
- <img src=Images/Api_Config.png width="600" /><br/>
+ <img src=Images/Api_Config.jpg width="600" /><br/>
+
+ <img src=Images/Api_Config_OTA.jpg width="600" /><br/>
+
+ <img src=Images/Api_Config_Log.jpg width="600" /><br/>
+
 
 ## Configuração obrigatória: `include/secrets.h`
 
